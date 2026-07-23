@@ -35,7 +35,7 @@ export interface StatsMetricsFormatted {
     cache_hit_rate: number;
 }
 
-function formatStatsMetrics(item: StatsMetrics): StatsMetricsFormatted {
+export function formatStatsMetrics(item: StatsMetrics): StatsMetricsFormatted {
     const input = item.input_token || 0;
     const output = item.output_token || 0;
     const cacheRead = item.cache_read_token || 0;
