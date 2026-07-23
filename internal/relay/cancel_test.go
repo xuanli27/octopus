@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/xuanli27/octopus/internal/model"
 	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
 )
 
@@ -47,6 +48,7 @@ func TestIsClientCancellationIgnoresLocalRelayBudgetTimeout(t *testing.T) {
 func TestStreamResponseCompleted(t *testing.T) {
 	stop := "stop"
 	empty := ""
+	content := "hello world"
 
 	cases := []struct {
 		name string
@@ -56,7 +58,7 @@ func TestStreamResponseCompleted(t *testing.T) {
 		{name: "nil", resp: nil, want: false},
 		{name: "no choices", resp: &transformerModel.InternalLLMResponse{}, want: false},
 		{
-			name: "missing finish_reason",
+			name: "missing finish_reason without content",
 			resp: &transformerModel.InternalLLMResponse{
 				Choices: []transformerModel.Choice{{Index: 0}},
 			},
@@ -80,11 +82,32 @@ func TestStreamResponseCompleted(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "complete",
+			name: "complete finish_reason",
 			resp: &transformerModel.InternalLLMResponse{
 				Choices: []transformerModel.Choice{{Index: 0, FinishReason: &stop}},
 			},
 			want: true,
+		},
+		{
+			name: "soft complete content+usage without finish_reason",
+			resp: &transformerModel.InternalLLMResponse{
+				Choices: []transformerModel.Choice{{
+					Index:   0,
+					Message: &transformerModel.Message{Content: transformerModel.MessageContent{Content: &content}},
+				}},
+				Usage: &transformerModel.Usage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15},
+			},
+			want: true,
+		},
+		{
+			name: "content without usage still incomplete",
+			resp: &transformerModel.InternalLLMResponse{
+				Choices: []transformerModel.Choice{{
+					Index:   0,
+					Message: &transformerModel.Message{Content: transformerModel.MessageContent{Content: &content}},
+				}},
+			},
+			want: false,
 		},
 	}
 
@@ -92,5 +115,16 @@ func TestStreamResponseCompleted(t *testing.T) {
 		if got := streamResponseCompleted(tc.resp); got != tc.want {
 			t.Fatalf("%s: streamResponseCompleted = %v, want %v", tc.name, got, tc.want)
 		}
+	}
+}
+
+func TestMetricsSuggestCompletedStream(t *testing.T) {
+	m := &RelayMetrics{Stats: model.StatsMetrics{InputToken: 10, OutputToken: 5}}
+	if !metricsSuggestCompletedStream(m) {
+		t.Fatalf("expected usage-only metrics to suggest complete")
+	}
+	m2 := &RelayMetrics{Stats: model.StatsMetrics{InputToken: 10, OutputToken: 0}}
+	if metricsSuggestCompletedStream(m2) {
+		t.Fatalf("input without output should not suggest complete")
 	}
 }
