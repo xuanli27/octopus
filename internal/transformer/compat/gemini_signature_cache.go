@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/utils/cache"
+	"github.com/xuanli27/octopus/internal/utils/cache"
 )
 
 const geminiThoughtSignatureTTL = 24 * time.Hour

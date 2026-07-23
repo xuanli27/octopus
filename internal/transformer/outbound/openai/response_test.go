@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 // TestConvertToResponsesRequestForwardsVerbosity verifies O-M8: the gpt-5

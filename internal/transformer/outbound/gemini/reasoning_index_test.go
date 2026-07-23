@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 // G-C4: when Gemini streams multiple chunks, each carrying its own Thought /

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
 	"gorm.io/gorm"
 )
 
@@ -134,6 +134,24 @@ func (s *Service) RunGroupHealth(ctx context.Context, groupID int, probeModes ..
 				Weight:       item.Weight,
 				Status:       model.GroupHealthAttemptStatusFailed,
 				ErrorMessage: fmt.Sprintf("failed to load channel: %v", err),
+			})
+			if appendErr != nil {
+				return appendErr
+			}
+			continue
+		}
+
+		if channel.SkipHealthProbe {
+			// Issue #102: channel opted out of health probes (upstream forbids synthetic traffic).
+			appendErr := s.repo.AppendAttempt(ctx, snapshot.ID, model.GroupHealthAttempt{
+				GroupItemID:  item.ID,
+				ChannelID:    item.ChannelID,
+				ChannelName:  channel.Name,
+				ModelName:    item.ModelName,
+				Priority:     item.Priority,
+				Weight:       item.Weight,
+				Status:       model.GroupHealthAttemptStatusSkipped,
+				ErrorMessage: "channel skip_health_probe enabled",
 			})
 			if appendErr != nil {
 				return appendErr

@@ -3,7 +3,7 @@ package relay
 import (
 	"testing"
 
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 // usage 完全缺失时，应使用 TransportInputTokens 兜底填充 input，output 保持 0。

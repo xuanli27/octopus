@@ -10,9 +10,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/client"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/client"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
 )
 
 func siteHTTPClient(ctx context.Context, siteRecord *model.Site, accounts ...*model.SiteAccount) (*http.Client, error) {

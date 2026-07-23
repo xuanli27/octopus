@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/apperror"
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/apperror"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func TestRequestJSONUsesBrowserHeaders(t *testing.T) {

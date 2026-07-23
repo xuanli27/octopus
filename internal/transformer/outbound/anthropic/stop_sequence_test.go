@@ -3,7 +3,7 @@ package anthropic
 import (
 	"testing"
 
-	anthropicModel "github.com/bestruirui/octopus/internal/transformer/inbound/anthropic"
+	anthropicModel "github.com/xuanli27/octopus/internal/transformer/inbound/anthropic"
 )
 
 func TestConvertToLLMResponsePropagatesStopSequence(t *testing.T) {

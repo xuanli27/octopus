@@ -2,19 +2,20 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/helper"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/server/middleware"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/server/router"
-	"github.com/bestruirui/octopus/internal/task"
-	"github.com/bestruirui/octopus/internal/utils/safe"
+	"github.com/xuanli27/octopus/internal/helper"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/server/middleware"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/server/router"
+	"github.com/xuanli27/octopus/internal/task"
+	"github.com/xuanli27/octopus/internal/utils/safe"
 	"github.com/gin-gonic/gin"
 )
 
@@ -197,7 +198,13 @@ func fetchModel(c *gin.Context) {
 	}
 	models, err := helper.FetchModels(c.Request.Context(), request)
 	if err != nil {
-		resp.ErrorWithAppError(c, http.StatusInternalServerError, channelError(codeChannelFetchModelsFailed, "channel fetch models failed", err))
+		// Include upstream cause in message so clients can show a useful toast even
+		// when they only read `message` / rawMessage (issue #91).
+		resp.ErrorWithAppError(c, http.StatusInternalServerError, channelError(
+			codeChannelFetchModelsFailed,
+			fmt.Sprintf("channel fetch models failed: %v", err),
+			err,
+		))
 		return
 	}
 	resp.Success(c, models)

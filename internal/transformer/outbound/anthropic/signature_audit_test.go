@@ -7,8 +7,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/utils/log"
 )
 
 // installObserver swaps the package-level log.Logger with an observer-backed

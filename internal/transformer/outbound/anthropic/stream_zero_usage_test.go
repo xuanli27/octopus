@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 // lastUsageDelta 返回事件序列中最后一个 UsageDelta 携带的 usage（没有则返回 nil）。

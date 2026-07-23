@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/apperror"
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/server/auth"
-	"github.com/bestruirui/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/apperror"
+	"github.com/xuanli27/octopus/internal/conf"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/server/auth"
+	"github.com/xuanli27/octopus/internal/server/resp"
 	"github.com/gin-gonic/gin"
 )
 
@@ -88,6 +88,7 @@ func APIKeyAuth() gin.HandlerFunc {
 		}
 		c.Set("request_type", requestType)
 		c.Set("supported_models", apiKeyObj.SupportedModels)
+		c.Set("model_list_mode", apiKeyObj.ModelListMode)
 		c.Set("api_key_id", apiKeyObj.ID)
 		c.Next()
 	}

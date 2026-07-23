@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/helper"
-	"github.com/bestruirui/octopus/internal/model"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/helper"
+	"github.com/xuanli27/octopus/internal/model"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 )
 
 type ProbeResult struct {

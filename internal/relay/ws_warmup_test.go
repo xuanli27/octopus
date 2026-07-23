@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/relay/balancer"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/relay/balancer"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 	"github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 )
@@ -77,7 +77,7 @@ func TestBestEffortWarmupUpstreamWSPrimesPoolAndSticky(t *testing.T) {
 		"generate": json.RawMessage(`false`),
 	}
 
-	if err := bestEffortWarmupUpstreamWS(context.Background(), 321, "", reqBody); err != nil {
+	if err := bestEffortWarmupUpstreamWS(context.Background(), 321, "", "", reqBody); err != nil {
 		t.Fatalf("bestEffortWarmupUpstreamWS failed: %v", err)
 	}
 	waitForWarmupAccepted(t, acceptedCh)

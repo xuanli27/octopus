@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/helper"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/helper"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"gorm.io/gorm"
 )
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound, CircleOff, Link } from 'lucide-react';
+import { Clock, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound, CircleOff, Link, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
@@ -532,6 +532,7 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
         [displayActualModelName]
     );
     const requestAPIKeyName = useMemo(() => log.request_api_key_name?.trim() ?? '', [log.request_api_key_name]);
+    const clientIP = useMemo(() => log.client_ip?.trim() ?? '', [log.client_ip]);
     const disableMutation = useUpdateSiteChannelModelDisabled();
 
     const hasError = !!log.error;
@@ -685,6 +686,14 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                                         <KeyRound className="size-3.5 shrink-0 text-orange-500" />
                                         <span className="truncate" title={requestAPIKeyName}>
                                             {requestAPIKeyName}
+                                        </span>
+                                    </div>
+                                ) : null}
+                                {clientIP ? (
+                                    <div className="flex items-center gap-1.5">
+                                        <Globe className="size-3.5 shrink-0 text-blue-500" />
+                                        <span className="truncate tabular-nums" title={clientIP}>
+                                            {clientIP}
                                         </span>
                                     </div>
                                 ) : null}
@@ -979,6 +988,14 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                                     <KeyRound className="size-3.5 shrink-0 text-orange-500" />
                                     <span className="truncate" title={requestAPIKeyName}>
                                         {requestAPIKeyName}
+                                    </span>
+                                </div>
+                            ) : null}
+                            {clientIP ? (
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                    <Globe className="size-3.5 shrink-0 text-blue-500" />
+                                    <span className="truncate tabular-nums" title={clientIP}>
+                                        {clientIP}
                                     </span>
                                 </div>
                             ) : null}

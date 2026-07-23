@@ -13,20 +13,19 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/helper"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/price"
-	"github.com/bestruirui/octopus/internal/relay/balancer"
-	"github.com/bestruirui/octopus/internal/relay/bodycache"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/conf"
+	"github.com/xuanli27/octopus/internal/helper"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/price"
+	"github.com/xuanli27/octopus/internal/relay/balancer"
+	"github.com/xuanli27/octopus/internal/relay/bodycache"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -95,14 +94,10 @@ func ImagesHandler(endpoint string, c *gin.Context) {
 		stream = s
 	}
 
-	// supported_models 校验（复用 APIKeyAuth 注入）
-	supportedModels := strings.TrimSpace(c.GetString("supported_models"))
-	if supportedModels != "" {
-		supportedModelsArray := strings.Split(supportedModels, ",")
-		if !slices.Contains(supportedModelsArray, requestModel) {
-			resp.ErrorWithCode(c, http.StatusBadRequest, CodeRelayModelNotSupported, "model not supported")
-			return
-		}
+	// supported_models 校验（复用 APIKeyAuth 注入；支持 allow/deny，issue #102）
+	if !apiKeyAllowsModel(c.GetString("supported_models"), c.GetString("model_list_mode"), requestModel) {
+		resp.ErrorWithCode(c, http.StatusBadRequest, CodeRelayModelNotSupported, "model not supported")
+		return
 	}
 
 	// 获取通道分组

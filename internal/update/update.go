@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/client"
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/client"
+	"github.com/xuanli27/octopus/internal/conf"
+	"github.com/xuanli27/octopus/internal/utils/log"
 )
 
 const (
-	updateUrl    = "https://github.com/Hureru/octopus/releases/latest/download"
-	updateApiUrl = "https://api.github.com/repos/Hureru/octopus/releases/latest"
+	updateUrl    = "https://github.com/xuanli27/octopus/releases/latest/download"
+	updateApiUrl = "https://api.github.com/repos/xuanli27/octopus/releases/latest"
 )
 
 type LatestInfo struct {

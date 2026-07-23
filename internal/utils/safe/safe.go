@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/log"
 )
 
 // Go runs fn in a goroutine and guarantees panic recovery.

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/bestruirui/octopus/internal/db"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
 )
 
 // TestRelayLogEnsureIndexesIdempotent 验证：

@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 func TestChatOutbound_ThinkingParameter(t *testing.T) {

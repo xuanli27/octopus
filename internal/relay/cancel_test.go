@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"testing"
+
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 func TestIsClientCancellationMatchesWrappedRequestErrors(t *testing.T) {
@@ -39,5 +41,56 @@ func TestIsClientCancellationIgnoresLocalRelayBudgetTimeout(t *testing.T) {
 	<-ctx.Done()
 	if isClientCancellation(ctx, contextError(ctx)) {
 		t.Fatalf("expected local relay budget timeout to not be treated as client cancellation")
+	}
+}
+
+func TestStreamResponseCompleted(t *testing.T) {
+	stop := "stop"
+	empty := ""
+
+	cases := []struct {
+		name string
+		resp *transformerModel.InternalLLMResponse
+		want bool
+	}{
+		{name: "nil", resp: nil, want: false},
+		{name: "no choices", resp: &transformerModel.InternalLLMResponse{}, want: false},
+		{
+			name: "missing finish_reason",
+			resp: &transformerModel.InternalLLMResponse{
+				Choices: []transformerModel.Choice{{Index: 0}},
+			},
+			want: false,
+		},
+		{
+			name: "empty finish_reason",
+			resp: &transformerModel.InternalLLMResponse{
+				Choices: []transformerModel.Choice{{Index: 0, FinishReason: &empty}},
+			},
+			want: false,
+		},
+		{
+			name: "partial multi-choice",
+			resp: &transformerModel.InternalLLMResponse{
+				Choices: []transformerModel.Choice{
+					{Index: 0, FinishReason: &stop},
+					{Index: 1},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "complete",
+			resp: &transformerModel.InternalLLMResponse{
+				Choices: []transformerModel.Choice{{Index: 0, FinishReason: &stop}},
+			},
+			want: true,
+		},
+	}
+
+	for _, tc := range cases {
+		if got := streamResponseCompleted(tc.resp); got != tc.want {
+			t.Fatalf("%s: streamResponseCompleted = %v, want %v", tc.name, got, tc.want)
+		}
 	}
 }

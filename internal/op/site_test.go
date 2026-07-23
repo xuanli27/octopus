@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/apperror"
-	dbpkg "github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/apperror"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func setupSiteOpTestDB(t *testing.T) context.Context {

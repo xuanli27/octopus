@@ -10,7 +10,7 @@
 
 </div>
 
-> 本项目 Fork 自 [bestruirui/octopus](https://github.com/bestruirui/octopus)，与上游的差异见 [与上游的差异](#-与上游的差异)。
+> 本仓库维护于 [xuanli27/octopus](https://github.com/xuanli27/octopus)，Fork 自 [Hureru/octopus](https://github.com/Hureru/octopus)（其基于 [bestruirui/octopus](https://github.com/bestruirui/octopus)）。与上游的差异见 [与上游的差异](#-与上游的差异)。
 
 
 ## ✨ 特性
@@ -36,20 +36,20 @@
 直接运行
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 hureru/octopus
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 xuanli27/octopus
 ```
 
 或者使用 docker compose 运行
 
 ```bash
-wget https://raw.githubusercontent.com/Hureru/octopus/refs/heads/dev/docker-compose.yml
+wget https://raw.githubusercontent.com/xuanli27/octopus/refs/heads/dev/docker-compose.yml
 docker compose up -d
 ```
 
 
 ### 📦 从 Release 下载
 
-从 [Releases](https://github.com/Hureru/octopus/releases) 下载对应平台的二进制文件，然后运行：
+从 [Releases](https://github.com/xuanli27/octopus/releases) 下载对应平台的二进制文件，然后运行：
 
 ```bash
 ./octopus start
@@ -64,7 +64,7 @@ docker compose up -d
 
 ```bash
 # 克隆项目
-git clone https://github.com/Hureru/octopus.git
+git clone https://github.com/xuanli27/octopus.git
 cd octopus
 # 构建前端
 cd web && pnpm install && pnpm run build && cd ..
@@ -381,7 +381,7 @@ base_url = "http://127.0.0.1:8080/v1"
 
 ## 🔀 与上游的差异
 
-兼容 [bestruirui/octopus](https://github.com/bestruirui/octopus)，`dev` 分支领先约 180 个提交。
+基于 [Hureru/octopus](https://github.com/Hureru/octopus) / [bestruirui/octopus](https://github.com/bestruirui/octopus)。本仓库：[xuanli27/octopus](https://github.com/xuanli27/octopus)。
 
 ### 🏗️ 新增子系统
 
@@ -401,7 +401,7 @@ base_url = "http://127.0.0.1:8080/v1"
 
 - 支持 Claude Opus 4.7 adaptive thinking；DB 迁移 003–012；设置页新增 Site Automation 面板。
 
-> 完整 diff：添加上游远端 `https://github.com/bestruirui/octopus` 后执行 `git log upstream/dev..HEAD`。
+> 相对 Hureru 的完整 diff：添加 `https://github.com/Hureru/octopus` 为 `upstream` 后执行 `git log upstream/dev..HEAD`。
 
 ---
 

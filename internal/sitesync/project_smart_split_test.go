@@ -3,7 +3,7 @@ package sitesync
 import (
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func TestShouldSplitForAccount(t *testing.T) {

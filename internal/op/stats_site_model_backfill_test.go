@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 // TestStatsSiteModelBackfillIgnoresHeavyContent 通过插入一批携带巨型

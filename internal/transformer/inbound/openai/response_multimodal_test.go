@@ -3,7 +3,7 @@ package openai
 import (
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 // O-H6: an `input_file` item referenced by uploaded file id must survive the

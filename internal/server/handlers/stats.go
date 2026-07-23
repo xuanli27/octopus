@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/server/middleware"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/server/router"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/server/middleware"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/server/router"
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,6 +32,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/apikey", http.MethodGet).
 				Handle(getStatsAPIKey),
+		).
+		AddRoute(
+			router.NewRoute("/model", http.MethodGet).
+				Handle(getStatsModel),
 		)
 }
 
@@ -58,4 +62,8 @@ func getStatsTotal(c *gin.Context) {
 
 func getStatsAPIKey(c *gin.Context) {
 	resp.Success(c, op.StatsAPIKeyList())
+}
+
+func getStatsModel(c *gin.Context) {
+	resp.Success(c, op.StatsModelList())
 }

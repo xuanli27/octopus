@@ -40,6 +40,7 @@ export interface ChannelFormData {
     custom_model: string;
     enabled: boolean;
     auto_sync: boolean;
+    skip_health_probe?: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
 }
@@ -138,7 +139,22 @@ export function ChannelForm({
                     }
                 },
                 onError: (error) => {
-                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    // ApiError is a plain object (not Error). Prefer rawMessage (backend detail)
+                    // over translated message, which is often a generic code string.
+                    // Avoid String(error) → "[object Object]" (issue #91).
+                    const raw =
+                        error && typeof error === 'object' && 'rawMessage' in error && typeof (error as { rawMessage?: unknown }).rawMessage === 'string'
+                            ? (error as { rawMessage: string }).rawMessage.trim()
+                            : '';
+                    const msg =
+                        error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string'
+                            ? (error as { message: string }).message.trim()
+                            : '';
+                    const errorMessage =
+                        raw ||
+                        msg ||
+                        (error instanceof Error ? error.message : '') ||
+                        t('modelRefreshFailed');
                     toast.error(t('modelRefreshFailed'), { description: errorMessage });
                 },
             }
@@ -595,6 +611,13 @@ export function ChannelForm({
                             onCheckedChange={(checked) => onFormDataChange({ ...formData, auto_sync: checked })}
                         />
                         <span className="text-sm text-card-foreground">{t('autoSync')}</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer" title={t('skipHealthProbeHint')}>
+                        <Switch
+                            checked={!!formData.skip_health_probe}
+                            onCheckedChange={(checked) => onFormDataChange({ ...formData, skip_health_probe: checked })}
+                        />
+                        <span className="text-sm text-card-foreground">{t('skipHealthProbe')}</span>
                     </label>
                 </div>
             </div>

@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
 	"gorm.io/gorm"
 )
 

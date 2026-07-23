@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/safe"
+	"github.com/xuanli27/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/safe"
 )
 
 type taskEntry struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/sitesync"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/sitesync"
 )
 
 func SyncAccount(ctx context.Context, accountID int) (*model.SiteSyncResult, error) {

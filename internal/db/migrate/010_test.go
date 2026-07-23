@@ -3,7 +3,7 @@ package migrate
 import (
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/model"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	anthropicModel "github.com/bestruirui/octopus/internal/transformer/inbound/anthropic"
+	anthropicModel "github.com/xuanli27/octopus/internal/transformer/inbound/anthropic"
 )
 
 func TestStreamUsageAggregatesCacheTokens(t *testing.T) {

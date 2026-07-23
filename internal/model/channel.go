@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 )
 
 type AutoGroupType int
@@ -71,8 +71,9 @@ type Channel struct {
 	ProxyMode     ProxyUsageMode        `json:"proxy_mode" gorm:"type:varchar(16);not null;default:'direct'"`
 	ProxyConfigID *int                  `json:"proxy_config_id"`
 	Proxy         bool                  `json:"-" gorm:"default:false"`
-	AutoSync      bool                  `json:"auto_sync" gorm:"default:false"`
-	AutoGroup     AutoGroupType         `json:"auto_group" gorm:"default:0"`
+	AutoSync         bool          `json:"auto_sync" gorm:"default:false"`
+	SkipHealthProbe  bool          `json:"skip_health_probe" gorm:"default:false"` // issue #102: skip group health probes
+	AutoGroup        AutoGroupType `json:"auto_group" gorm:"default:0"`
 	CustomHeader  []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
 	WSMode        ChannelWSMode         `json:"ws_mode" gorm:"type:varchar(16);not null;default:'inherit'"`
 	ParamOverride *string               `json:"param_override"`
@@ -147,8 +148,9 @@ type ChannelUpdateRequest struct {
 	ProxyMode     *ProxyUsageMode        `json:"proxy_mode,omitempty"`
 	ProxyConfigID *int                   `json:"proxy_config_id,omitempty"`
 	Proxy         *bool                  `json:"-"`
-	AutoSync      *bool                  `json:"auto_sync,omitempty"`
-	AutoGroup     *AutoGroupType         `json:"auto_group,omitempty"`
+	AutoSync        *bool                  `json:"auto_sync,omitempty"`
+	SkipHealthProbe *bool                  `json:"skip_health_probe,omitempty"`
+	AutoGroup       *AutoGroupType         `json:"auto_group,omitempty"`
 	CustomHeader  *[]CustomHeader        `json:"custom_header,omitempty"`
 	WSMode        *ChannelWSMode         `json:"ws_mode,omitempty"`
 	ChannelProxy  *string                `json:"-"`

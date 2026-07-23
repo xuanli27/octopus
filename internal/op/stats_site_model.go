@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/utils/cache"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/utils/cache"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -130,18 +130,54 @@ func StatsSiteModelHourlySaveDB(ctx context.Context) error {
 		Columns: []clause.Column{
 			{Name: "hour"}, {Name: "site_account_id"}, {Name: "group_key"}, {Name: "model_name"},
 		},
-		DoUpdates: clause.Assignments(map[string]interface{}{
-			"date":            clause.Column{Name: "date"},
-			"input_token":     gorm.Expr("stats_site_model_hourlies.input_token + EXCLUDED.input_token"),
-			"output_token":    gorm.Expr("stats_site_model_hourlies.output_token + EXCLUDED.output_token"),
-			"input_cost":      gorm.Expr("stats_site_model_hourlies.input_cost + EXCLUDED.input_cost"),
-			"output_cost":     gorm.Expr("stats_site_model_hourlies.output_cost + EXCLUDED.output_cost"),
-			"wait_time":       gorm.Expr("stats_site_model_hourlies.wait_time + EXCLUDED.wait_time"),
-			"request_success": gorm.Expr("stats_site_model_hourlies.request_success + EXCLUDED.request_success"),
-			"request_failed":  gorm.Expr("stats_site_model_hourlies.request_failed + EXCLUDED.request_failed"),
-			"last_request_at": gorm.Expr("MAX(stats_site_model_hourlies.last_request_at, EXCLUDED.last_request_at)"),
-		}),
+		DoUpdates: clause.Assignments(siteModelHourlyConflictUpdates(dbConn)),
 	}).Create(&rows).Error
+}
+
+// siteModelHourlyConflictUpdates builds dialect-safe ON CONFLICT assignments.
+// See siteModelHourlyConflictUpdatesForDialect and GitHub issue #114.
+func siteModelHourlyConflictUpdates(dbConn *gorm.DB) map[string]interface{} {
+	dialect := ""
+	if dbConn != nil && dbConn.Dialector != nil {
+		dialect = dbConn.Dialector.Name()
+	}
+	return siteModelHourlyConflictUpdatesForDialect(dialect)
+}
+
+// siteModelHourlyConflictUpdatesForDialect builds dialect-safe ON CONFLICT assignments.
+//
+// PostgreSQL rejects unqualified "date = date" as ambiguous (SQLSTATE 42702)
+// and does not support SQLite-style MAX(a, b); use EXCLUDED.* + GREATEST.
+// MySQL uses VALUES(col) in ON DUPLICATE KEY UPDATE.
+func siteModelHourlyConflictUpdatesForDialect(dialect string) map[string]interface{} {
+	excluded := func(col string) string {
+		if dialect == "mysql" {
+			return "VALUES(" + col + ")"
+		}
+		return "EXCLUDED." + col
+	}
+	table := "stats_site_model_hourlies."
+	maxOrGreatest := func(col string) clause.Expr {
+		a, b := table+col, excluded(col)
+		if dialect == "postgres" || dialect == "mysql" {
+			return gorm.Expr("GREATEST(" + a + ", " + b + ")")
+		}
+		return gorm.Expr("MAX(" + a + ", " + b + ")")
+	}
+	return map[string]interface{}{
+		// Qualify with EXCLUDED/VALUES — bare clause.Column{"date"} is ambiguous on PG.
+		"date":              gorm.Expr(excluded("date")),
+		"input_token":       gorm.Expr(table + "input_token + " + excluded("input_token")),
+		"output_token":      gorm.Expr(table + "output_token + " + excluded("output_token")),
+		"cache_read_token":  gorm.Expr(table + "cache_read_token + " + excluded("cache_read_token")),
+		"cache_write_token": gorm.Expr(table + "cache_write_token + " + excluded("cache_write_token")),
+		"input_cost":        gorm.Expr(table + "input_cost + " + excluded("input_cost")),
+		"output_cost":       gorm.Expr(table + "output_cost + " + excluded("output_cost")),
+		"wait_time":         gorm.Expr(table + "wait_time + " + excluded("wait_time")),
+		"request_success":   gorm.Expr(table + "request_success + " + excluded("request_success")),
+		"request_failed":    gorm.Expr(table + "request_failed + " + excluded("request_failed")),
+		"last_request_at":   maxOrGreatest("last_request_at"),
+	}
 }
 
 const siteChannelModelHistoryWindow = 90 * 24 * time.Hour

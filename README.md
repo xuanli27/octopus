@@ -10,7 +10,7 @@
 
 </div>
 
-> Forked from [bestruirui/octopus](https://github.com/bestruirui/octopus) — see [Differences from Upstream](#-differences-from-upstream) for what this fork changes.
+> Fork of [Hureru/octopus](https://github.com/Hureru/octopus) (itself based on [bestruirui/octopus](https://github.com/bestruirui/octopus)). Maintained at [xuanli27/octopus](https://github.com/xuanli27/octopus). See [Differences from Upstream](#-differences-from-upstream).
 
 
 ## ✨ Features
@@ -36,20 +36,20 @@
 Run directly:
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 hureru/octopus
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 xuanli27/octopus
 ```
 
 Or use docker compose:
 
 ```bash
-wget https://raw.githubusercontent.com/Hureru/octopus/refs/heads/dev/docker-compose.yml
+wget https://raw.githubusercontent.com/xuanli27/octopus/refs/heads/dev/docker-compose.yml
 docker compose up -d
 ```
 
 
 ### 📦 Download from Release
 
-Download the binary for your platform from [Releases](https://github.com/Hureru/octopus/releases), then run:
+Download the binary for your platform from [Releases](https://github.com/xuanli27/octopus/releases), then run:
 
 ```bash
 ./octopus start
@@ -64,7 +64,7 @@ Download the binary for your platform from [Releases](https://github.com/Hureru/
 
 ```bash
 # Clone the repository
-git clone https://github.com/Hureru/octopus.git
+git clone https://github.com/xuanli27/octopus.git
 cd octopus
 # Build frontend
 cd web && pnpm install && pnpm run build && cd ..
@@ -379,7 +379,7 @@ Edit `~/.codex/auth.json`
 
 ## 🔀 Differences from Upstream
 
-Compatible with [bestruirui/octopus](https://github.com/bestruirui/octopus), ~180 commits ahead on `dev`.
+Based on [Hureru/octopus](https://github.com/Hureru/octopus) / [bestruirui/octopus](https://github.com/bestruirui/octopus). This repository: [xuanli27/octopus](https://github.com/xuanli27/octopus).
 
 ### 🏗️ New subsystems
 
@@ -399,7 +399,7 @@ Compatible with [bestruirui/octopus](https://github.com/bestruirui/octopus), ~18
 
 - Claude Opus 4.7 adaptive thinking; DB migrations 003–012; new Site Automation panel in Settings.
 
-> Full diff: `git log upstream/dev..HEAD` after adding `https://github.com/bestruirui/octopus` as `upstream`.
+> Full diff vs Hureru: add `https://github.com/Hureru/octopus` as `upstream`, then `git log upstream/dev..HEAD`.
 
 ---
 

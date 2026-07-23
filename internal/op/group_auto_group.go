@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	outboundmodel "github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	outboundmodel "github.com/xuanli27/octopus/internal/transformer/outbound"
 )
 
 func GroupAutoGroupConfigGet(ctx context.Context) (*model.GroupAutoGroupConfig, error) {

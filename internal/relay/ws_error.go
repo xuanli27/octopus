@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/relay/stream"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/relay/stream"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/utils/log"
 )
 
 type wsPublicError struct {

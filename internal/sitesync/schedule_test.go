@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func TestBuildNextRandomCheckinAtRespectsRollingInterval(t *testing.T) {

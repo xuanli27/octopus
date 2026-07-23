@@ -3,7 +3,7 @@ package compat
 import (
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 // PatchAnthropicRequest applies small protocol repairs before Anthropic wire

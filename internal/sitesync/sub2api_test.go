@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func TestSyncSub2APIUsesManagedKeyAndAPIModelEndpoint(t *testing.T) {

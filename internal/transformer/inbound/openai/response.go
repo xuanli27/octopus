@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,8 +9,8 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/xurl"
+	"github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/utils/xurl"
 )
 
 // ResponseInbound implements the Inbound interface for OpenAI Responses API.
@@ -813,7 +814,7 @@ func (i *ResponseInbound) closeCurrentOutputItem() [][]byte {
 				Status:    lo.ToPtr("completed"),
 				CallID:    tc.ID,
 				Name:      tc.Function.Name,
-				Arguments: tc.Function.Arguments,
+				Arguments: FlexibleJSONString(tc.Function.Arguments),
 			}
 
 			events = append(events, i.enqueueEvent(&ResponsesStreamEvent{
@@ -919,6 +920,12 @@ func (i ResponsesInput) MarshalJSON() ([]byte, error) {
 }
 
 func (i *ResponsesInput) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	// Codex / Responses may send content: null on reasoning items.
+	if len(data) == 0 || string(data) == "null" {
+		*i = ResponsesInput{}
+		return nil
+	}
 	var text string
 	if err := json.Unmarshal(data, &text); err == nil {
 		i.Text = &text
@@ -931,6 +938,45 @@ func (i *ResponsesInput) UnmarshalJSON(data []byte) error {
 	}
 	return fmt.Errorf("invalid input format")
 }
+
+// FlexibleJSONString unmarshals either a JSON string or any other JSON value
+// (object/array/number/bool) into a string. Codex sends tool / tool_search_call
+// arguments as objects; OpenAI wire format often uses stringified JSON. Issue #115.
+type FlexibleJSONString string
+
+func (s *FlexibleJSONString) UnmarshalJSON(data []byte) error {
+	if s == nil {
+		return fmt.Errorf("FlexibleJSONString: nil receiver")
+	}
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 || string(data) == "null" {
+		*s = ""
+		return nil
+	}
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		*s = FlexibleJSONString(str)
+		return nil
+	}
+	// Preserve compact JSON for object/array/number/bool payloads.
+	*s = FlexibleJSONString(data)
+	return nil
+}
+
+func (s FlexibleJSONString) MarshalJSON() ([]byte, error) {
+	raw := strings.TrimSpace(string(s))
+	if raw == "" {
+		return []byte(`""`), nil
+	}
+	// Re-emit object/array payloads as JSON values so raw input item round-trips
+	// preserve Codex tool_search_call.arguments objects (issue #115).
+	if json.Valid([]byte(raw)) && (raw[0] == '{' || raw[0] == '[') {
+		return []byte(raw), nil
+	}
+	return json.Marshal(string(s))
+}
+
+func (s FlexibleJSONString) String() string { return string(s) }
 
 type ResponsesItem struct {
 	ID       string          `json:"id,omitempty"`
@@ -946,10 +992,11 @@ type ResponsesItem struct {
 	// Annotations for output_text content
 	Annotations *[]ResponsesAnnotation `json:"annotations,omitempty"`
 
-	// Function call fields
-	CallID    string `json:"call_id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Arguments string `json:"arguments,omitempty"`
+	// Function call fields.
+	// Arguments accepts string or object (Codex tool_search_call / some tools). Issue #115.
+	CallID    string             `json:"call_id,omitempty"`
+	Name      string             `json:"name,omitempty"`
+	Arguments FlexibleJSONString `json:"arguments,omitempty"`
 
 	// Function call output
 	Output        *ResponsesInput `json:"output,omitempty"`
@@ -1433,17 +1480,21 @@ func convertItemToMessage(item *ResponsesItem) (*model.Message, error) {
 					Type: "function",
 					Function: model.FunctionCall{
 						Name:      item.Name,
-						Arguments: item.Arguments,
+						Arguments: item.Arguments.String(),
 					},
 				},
 			},
 		}, nil
 
 	case "function_call_output":
+		content := model.MessageContent{}
+		if item.Output != nil {
+			content = convertInputToMessageContent(*item.Output)
+		}
 		return &model.Message{
 			Role:       "tool",
 			ToolCallID: lo.ToPtr(item.CallID),
-			Content:    convertInputToMessageContent(*item.Output),
+			Content:    content,
 		}, nil
 
 	case "reasoning":
@@ -1649,7 +1700,7 @@ func convertToResponsesAPIResponse(resp *model.InternalLLMResponse) *ResponsesRe
 					Type:      "function_call",
 					CallID:    toolCall.ID,
 					Name:      toolCall.Function.Name,
-					Arguments: toolCall.Function.Arguments,
+					Arguments: FlexibleJSONString(toolCall.Function.Arguments),
 					Status:    lo.ToPtr("completed"),
 				})
 			}

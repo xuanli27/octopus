@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/bestruirui/octopus/internal/apperror"
+	"github.com/xuanli27/octopus/internal/apperror"
 )
 
 const maxSiteStatusMessageRunes = 300

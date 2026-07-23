@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/apperror"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/server/auth"
-	"github.com/bestruirui/octopus/internal/server/middleware"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/server/router"
+	"github.com/xuanli27/octopus/internal/apperror"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/server/auth"
+	"github.com/xuanli27/octopus/internal/server/middleware"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/server/router"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )
@@ -119,19 +119,11 @@ func getStatsAPIKeyById(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	var modelsString string
-	if info.SupportedModels == "" {
-		modelsString = strings.Join(models, ", ")
-	} else {
-		supportedModels := lo.Map(strings.Split(info.SupportedModels, ","), func(s string, _ int) string {
-			return strings.TrimSpace(s)
-		})
-		models = lo.Filter(models, func(m string, _ int) bool {
-			return lo.Contains(supportedModels, m)
-		})
-		modelsString = strings.Join(models, ", ")
-	}
-	info.SupportedModels = modelsString
+	// Dashboard shows models allowed under this key's policy (allow/deny, #102).
+	models = lo.Filter(models, func(m string, _ int) bool {
+		return info.ModelAllowed(m)
+	})
+	info.SupportedModels = strings.Join(models, ", ")
 	resp.Success(c, map[string]any{
 		"stats": stats,
 		"info":  info,

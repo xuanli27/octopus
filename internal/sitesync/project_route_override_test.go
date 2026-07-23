@@ -3,10 +3,10 @@ package sitesync
 import (
 	"testing"
 
-	dbpkg "github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 )
 
 func TestShouldSplitByOutboundTypeForcesSplitWhenRouteBaseURLsConfigured(t *testing.T) {

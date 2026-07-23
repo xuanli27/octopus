@@ -8,22 +8,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/helper"
-	dbmodel "github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/outlierwindow"
-	"github.com/bestruirui/octopus/internal/relay/balancer"
-	"github.com/bestruirui/octopus/internal/relay/stream"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/transformer/inbound"
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
-	openaiOutbound "github.com/bestruirui/octopus/internal/transformer/outbound/openai"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/helper"
+	dbmodel "github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/outlierwindow"
+	"github.com/xuanli27/octopus/internal/relay/balancer"
+	"github.com/xuanli27/octopus/internal/relay/stream"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/transformer/inbound"
+	"github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
+	openaiOutbound "github.com/xuanli27/octopus/internal/transformer/outbound/openai"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"github.com/gin-gonic/gin"
 	"github.com/tmaxmax/go-sse"
 )
@@ -64,13 +63,9 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	if err != nil {
 		return
 	}
-	supportedModels := c.GetString("supported_models")
-	if supportedModels != "" {
-		supportedModelsArray := strings.Split(supportedModels, ",")
-		if !slices.Contains(supportedModelsArray, internalRequest.Model) {
-			resp.ErrorWithCode(c, http.StatusBadRequest, CodeRelayModelNotSupported, "model not supported")
-			return
-		}
+	if !apiKeyAllowsModel(c.GetString("supported_models"), c.GetString("model_list_mode"), internalRequest.Model) {
+		resp.ErrorWithCode(c, http.StatusBadRequest, CodeRelayModelNotSupported, "model not supported")
+		return
 	}
 
 	requestModel := internalRequest.Model
@@ -136,6 +131,7 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 
 	// 初始化 Metrics
 	metrics := NewRelayMetrics(apiKeyID, requestModel, rawBody, internalRequest)
+	metrics.SetClientIP(c.ClientIP())
 	// 如果触发了 HTTP replay，记录 ws_mode=replay 和 ws_recovery=replay
 	if responsesReplayState != nil {
 		metrics.SetWSMode(dbmodel.RelayLogWSModeReplay)
@@ -434,6 +430,31 @@ func (ra *relayAttempt) attempt() attemptResult {
 		if written {
 			ra.collectResponse()
 		}
+		// Issue #116: 客户端在完整流（含 finish_reason）送达后立即断连时，上游 EOF
+		// 尚未读到、读侧会收到 context canceled。内容已完整交付，应按成功收口，
+		// 避免 HTTP 200 + 完整 token 却被记为 success=false。
+		if written && streamResponseCompleted(ra.metrics.InternalResponse) {
+			if statusCode == 0 {
+				statusCode = http.StatusOK
+			}
+			ra.usedKey.StatusCode = statusCode
+			ra.usedKey.TotalCost += ra.metrics.Stats.InputCost + ra.metrics.Stats.OutputCost
+			op.ChannelKeyUpdate(ra.usedKey)
+
+			span.End(dbmodel.AttemptSuccess, statusCode, "")
+
+			op.StatsChannelUpdate(ra.channel.ID, dbmodel.StatsMetrics{
+				WaitTime:       span.Duration().Milliseconds(),
+				RequestSuccess: 1,
+			})
+
+			balancer.RecordSuccess(ra.channel.ID, ra.usedKey.ID, ra.internalRequest.Model)
+			balancer.SetSticky(ra.apiKeyID, ra.requestModel, ra.channel.ID, ra.usedKey.ID)
+
+			log.Debugf("client canceled after complete stream (finish_reason present), treating as success")
+			return attemptResult{Success: true, StatusCode: statusCode}
+		}
+
 		op.ChannelKeyUpdate(ra.usedKey)
 		span.End(dbmodel.AttemptFailed, statusCode, fwdErr.Error())
 		return attemptResult{
@@ -485,7 +506,14 @@ func parseRequest(inboundType inbound.InboundType, c *gin.Context) ([]byte, *mod
 	inAdapter := inbound.Get(inboundType)
 	internalRequest, err := inAdapter.TransformRequest(c.Request.Context(), body)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		// Client payload problems (invalid JSON / schema) are 4xx, not server faults.
+		// Returning 500 made Codex report "high demand" and retry forever (#115).
+		status := http.StatusBadRequest
+		msg := err.Error()
+		if strings.Contains(strings.ToLower(msg), "internal") {
+			status = http.StatusInternalServerError
+		}
+		resp.Error(c, status, msg)
 		return nil, nil, nil, err
 	}
 
@@ -1310,6 +1338,14 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 		return fmt.Errorf("failed to transform outbound response: %w", err)
 	}
 
+	// Issue #100: hollow 200 bodies (empty id/model/choices) used to be forwarded
+	// as success and killed local sessions. Treat as retryable upstream failure
+	// before anything is written to the client.
+	if isEmptyUpstreamResponse(internalResponse) {
+		log.Warnf("empty upstream response from channel %s", ra.channel.Name)
+		return ErrEmptyUpstreamResponse
+	}
+
 	inResponse, err := ra.inAdapter.TransformResponse(ctx, internalResponse)
 	if err != nil {
 		log.Warnf("failed to transform response: %v", err)
@@ -1318,6 +1354,29 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 
 	ra.c.Data(http.StatusOK, "application/json", inResponse)
 	return nil
+}
+
+// isEmptyUpstreamResponse reports whether a non-stream internal response has no
+// usable payload for the client. Provider error objects are not empty — they are
+// real failures handled elsewhere.
+func isEmptyUpstreamResponse(resp *model.InternalLLMResponse) bool {
+	if resp == nil {
+		return true
+	}
+	if resp.Error != nil {
+		return false
+	}
+	if len(resp.Choices) > 0 {
+		return false
+	}
+	if len(resp.EmbeddingData) > 0 {
+		return false
+	}
+	if len(resp.RawResponsesOutputItems) > 0 {
+		return false
+	}
+	// Usage-only shell with no content is still useless to chat clients.
+	return true
 }
 
 // collectResponse 收集响应信息

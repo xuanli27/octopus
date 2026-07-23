@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 func TestResponsesReplayStateKey(t *testing.T) {

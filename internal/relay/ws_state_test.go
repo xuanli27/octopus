@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 func TestBuildWSResponseCreateMessageNormalizesWSFields(t *testing.T) {

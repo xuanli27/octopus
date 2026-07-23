@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func resetRelayLogStateForTest() {

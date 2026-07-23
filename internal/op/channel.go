@@ -7,12 +7,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	model2 "github.com/bestruirui/octopus/internal/transformer/outbound"
-	"github.com/bestruirui/octopus/internal/utils/cache"
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/xstrings"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	model2 "github.com/xuanli27/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/utils/cache"
+	"github.com/xuanli27/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/xstrings"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -253,6 +253,10 @@ func ChannelUpdate(req *model.ChannelUpdateRequest, ctx context.Context) (*model
 	if req.AutoSync != nil {
 		selectFields = append(selectFields, "auto_sync")
 		updates.AutoSync = *req.AutoSync
+	}
+	if req.SkipHealthProbe != nil {
+		selectFields = append(selectFields, "skip_health_probe")
+		updates.SkipHealthProbe = *req.SkipHealthProbe
 	}
 	if req.AutoGroup != nil {
 		selectFields = append(selectFields, "auto_group")

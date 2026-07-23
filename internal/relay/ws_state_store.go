@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/relay/balancer"
+	"github.com/xuanli27/octopus/internal/relay/balancer"
 )
 
 type wsConversationStateEntry struct {

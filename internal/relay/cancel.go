@@ -3,6 +3,9 @@ package relay
 import (
 	"context"
 	"errors"
+	"strings"
+
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 var (
@@ -52,4 +55,23 @@ func isClientCancellation(ctx context.Context, err error) bool {
 		return false
 	}
 	return errors.Is(ctx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.DeadlineExceeded)
+}
+
+// streamResponseCompleted reports whether an aggregated Chat-style stream response
+// already reached a terminal finish_reason on every choice.
+//
+// Used to normalize late client disconnects (context canceled after the full
+// answer was delivered) into success, instead of recording a false failure.
+// See GitHub issues #116 / #111.
+func streamResponseCompleted(resp *model.InternalLLMResponse) bool {
+	if resp == nil || len(resp.Choices) == 0 {
+		return false
+	}
+	for i := range resp.Choices {
+		fr := resp.Choices[i].FinishReason
+		if fr == nil || strings.TrimSpace(*fr) == "" {
+			return false
+		}
+	}
+	return true
 }

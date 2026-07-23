@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	dbmodel "github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
+	dbmodel "github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
 	"github.com/gin-gonic/gin"
 )
 

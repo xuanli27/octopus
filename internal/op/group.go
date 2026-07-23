@@ -3,10 +3,11 @@ package op
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/utils/cache"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/utils/cache"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -379,6 +380,47 @@ func GroupItemDel(id int, ctx context.Context) error {
 		return err
 	}
 	resetBalancerStateForChannel(item.ChannelID)
+	return nil
+}
+
+// GroupItemBatchDelInGroup removes group items for one channel inside a single group.
+// Used by declarative auto-group sync so other groups are left untouched.
+func GroupItemBatchDelInGroup(groupID int, channelID int, modelNames []string, ctx context.Context) error {
+	if groupID == 0 || channelID == 0 || len(modelNames) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(modelNames))
+	uniq := make([]string, 0, len(modelNames))
+	for _, name := range modelNames {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		uniq = append(uniq, name)
+	}
+	if len(uniq) == 0 {
+		return nil
+	}
+
+	res := db.GetDB().WithContext(ctx).
+		Where("group_id = ? AND channel_id = ? AND model_name IN ?", groupID, channelID, uniq).
+		Delete(&model.GroupItem{})
+	if res.Error != nil {
+		return fmt.Errorf("failed to delete group items: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return nil
+	}
+
+	if err := groupRefreshCacheByID(groupID, ctx); err != nil {
+		return fmt.Errorf("failed to refresh group cache: %w", err)
+	}
+	resetBalancerStateForChannel(channelID)
 	return nil
 }
 

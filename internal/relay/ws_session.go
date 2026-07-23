@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	openaiOutbound "github.com/bestruirui/octopus/internal/transformer/outbound/openai"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	openaiOutbound "github.com/xuanli27/octopus/internal/transformer/outbound/openai"
 )
 
 type wsConversationState struct {

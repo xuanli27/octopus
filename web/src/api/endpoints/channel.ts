@@ -71,6 +71,8 @@ export type Channel = {
     proxy_mode: Exclude<ProxyMode, 'inherit'>;
     proxy_config_id?: number | null;
     auto_sync: boolean;
+    /** Skip group health probes for this channel (#102) */
+    skip_health_probe?: boolean;
     auto_group: AutoGroupType;
     custom_header: CustomHeader[];
     ws_mode: ChannelWSMode;
@@ -102,6 +104,7 @@ export type CreateChannelRequest = {
     proxy_mode?: Exclude<ProxyMode, 'inherit'>;
     proxy_config_id?: number | null;
     auto_sync?: boolean;
+    skip_health_probe?: boolean;
     auto_group?: AutoGroupType;
     custom_header?: CustomHeader[];
     ws_mode?: ChannelWSMode;
@@ -123,6 +126,7 @@ export type UpdateChannelRequest = {
     proxy_mode?: Exclude<ProxyMode, 'inherit'>;
     proxy_config_id?: number | null;
     auto_sync?: boolean;
+    skip_health_probe?: boolean;
     auto_group?: AutoGroupType;
     custom_header?: CustomHeader[];
     ws_mode?: ChannelWSMode;
@@ -176,6 +180,8 @@ export function useChannelList() {
             formatted: {
                 input_token: formatCount(item.stats.input_token),
                 output_token: formatCount(item.stats.output_token),
+                cache_read_token: formatCount(item.stats.cache_read_token || 0),
+                cache_write_token: formatCount(item.stats.cache_write_token || 0),
                 total_token: formatCount(item.stats.input_token + item.stats.output_token),
                 input_cost: formatMoney(item.stats.input_cost),
                 output_cost: formatMoney(item.stats.output_cost),
@@ -184,6 +190,12 @@ export function useChannelList() {
                 request_failed: formatCount(item.stats.request_failed),
                 request_count: formatCount(item.stats.request_success + item.stats.request_failed),
                 wait_time: formatTime(item.stats.wait_time),
+                cache_hit_rate: (() => {
+                    const input = item.stats.input_token || 0;
+                    const cacheRead = item.stats.cache_read_token || 0;
+                    const denom = Math.max(input, cacheRead);
+                    return denom > 0 ? (cacheRead / denom) * 100 : 0;
+                })(),
             }
         })) as Array<{ raw: Channel; formatted: StatsMetricsFormatted }>,
         refetchInterval: 30000,

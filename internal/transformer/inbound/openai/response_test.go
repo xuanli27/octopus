@@ -2,6 +2,7 @@ package openai
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -141,4 +142,115 @@ func TestConvertToInternalRequestNormalizesTopLevelInputFile(t *testing.T) {
 
 func stringPtr(value string) *string {
 	return &value
+}
+
+// Issue #115: Codex sends reasoning.content=null and tool_search_call.arguments as object.
+func TestTransformRequestCodexToolSearchAndNullReasoningContent(t *testing.T) {
+	body := []byte(`{
+  "model": "gpt-5.5",
+  "input": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": [{ "type": "input_text", "text": "hello" }]
+    },
+    {
+      "type": "reasoning",
+      "summary": [{ "type": "summary_text", "text": "thinking" }],
+      "content": null,
+      "encrypted_content": "sig_123"
+    },
+    {
+      "type": "tool_search_call",
+      "call_id": "call_search",
+      "status": "completed",
+      "execution": "client",
+      "arguments": {
+        "query": "spawn subagent code review",
+        "limit": 5
+      }
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "name": "exec_command",
+      "parameters": { "type": "object" }
+    },
+    {
+      "type": "custom",
+      "name": "apply_patch",
+      "format": { "type": "grammar", "syntax": "lark", "definition": "start: begin_patch" }
+    }
+  ],
+  "include": ["reasoning.encrypted_content"],
+  "stream": true
+}`)
+
+	inbound := &ResponseInbound{}
+	req, err := inbound.TransformRequest(t.Context(), body)
+	if err != nil {
+		t.Fatalf("TransformRequest failed: %v", err)
+	}
+	if req.Model != "gpt-5.5" {
+		t.Fatalf("model: got %q", req.Model)
+	}
+	// Unsupported tool types / input items must mark passthrough rather than hard-fail.
+	if !req.HasOpenAIResponsesPassthrough() {
+		t.Fatalf("expected passthrough for custom tools / tool_search_call")
+	}
+	// Raw input items must preserve object arguments for passthrough fidelity.
+	raw := req.OpenAIRawInputItems()
+	if len(raw) == 0 {
+		t.Fatalf("expected raw input items preserved")
+	}
+	var items []map[string]any
+	if err := json.Unmarshal(raw, &items); err != nil {
+		t.Fatalf("unmarshal raw items: %v", err)
+	}
+	foundSearch := false
+	for _, it := range items {
+		if it["type"] == "tool_search_call" {
+			foundSearch = true
+			args, ok := it["arguments"].(map[string]any)
+			if !ok {
+				t.Fatalf("expected arguments object preserved, got %#v", it["arguments"])
+			}
+			if args["query"] != "spawn subagent code review" {
+				t.Fatalf("arguments.query lost, got %#v", args)
+			}
+		}
+	}
+	if !foundSearch {
+		t.Fatalf("tool_search_call missing from raw items: %#v", items)
+	}
+}
+
+func TestFlexibleJSONStringAcceptsObjectAndString(t *testing.T) {
+	var s FlexibleJSONString
+	if err := json.Unmarshal([]byte(`{"a":1}`), &s); err != nil {
+		t.Fatalf("object: %v", err)
+	}
+	if !strings.Contains(s.String(), "\"a\"") {
+		t.Fatalf("expected compact JSON object, got %q", s)
+	}
+	if err := json.Unmarshal([]byte(`"hello"`), &s); err != nil {
+		t.Fatalf("string: %v", err)
+	}
+	if s.String() != "hello" {
+		t.Fatalf("got %q", s)
+	}
+	if err := json.Unmarshal([]byte(`null`), &s); err != nil || s.String() != "" {
+		t.Fatalf("null: err=%v val=%q", err, s)
+	}
+}
+
+func TestResponsesInputAcceptsNull(t *testing.T) {
+	var input ResponsesInput
+	if err := json.Unmarshal([]byte(`null`), &input); err != nil {
+		t.Fatalf("null content: %v", err)
+	}
+	if input.Text != nil || len(input.Items) != 0 {
+		t.Fatalf("expected empty input for null, got %#v", input)
+	}
 }

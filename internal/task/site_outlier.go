@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/grouphealth"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/outlierwindow"
-	"github.com/bestruirui/octopus/internal/sitesync"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/grouphealth"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/outlierwindow"
+	"github.com/xuanli27/octopus/internal/sitesync"
+	"github.com/xuanli27/octopus/internal/utils/log"
 )
 
 // outlierConfig 一轮评估使用的阈值，从 Setting 读取。

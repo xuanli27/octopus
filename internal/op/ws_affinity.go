@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 func WSResponseAffinityCleanup(ctx context.Context, now time.Time) (int64, error) {

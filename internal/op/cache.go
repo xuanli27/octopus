@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/conf"
+	"github.com/xuanli27/octopus/internal/conf"
 )
 
 func InitCache() error {

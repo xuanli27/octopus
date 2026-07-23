@@ -16,6 +16,10 @@ type Formatted = { value: string; unit: string };
 type MetricsRow = {
     requests: Formatted;
     tokens: Formatted;
+    inputTokens: Formatted;
+    outputTokens: Formatted;
+    cacheRead: Formatted;
+    cacheHitRate: string; // e.g. "12.3%"
     waitTime: Formatted;
 };
 
@@ -53,10 +57,35 @@ export function StatsChart() {
         metrics: MetricsRow;
         chartData: ChartPoint[];
     }>(() => {
+        const zero = formatCount(0).formatted;
         const emptyMetrics: MetricsRow = {
-            requests: formatCount(0).formatted,
-            tokens: formatCount(0).formatted,
+            requests: zero,
+            tokens: zero,
+            inputTokens: zero,
+            outputTokens: zero,
+            cacheRead: zero,
+            cacheHitRate: '0%',
             waitTime: formatTime(0).formatted,
+        };
+
+        const buildMetrics = (
+            requests: number,
+            input: number,
+            output: number,
+            cacheRead: number,
+            wait: number,
+        ): MetricsRow => {
+            const denom = Math.max(input, cacheRead);
+            const hit = denom > 0 ? (cacheRead / denom) * 100 : 0;
+            return {
+                requests: formatCount(requests).formatted,
+                tokens: formatCount(input + output).formatted,
+                inputTokens: formatCount(input).formatted,
+                outputTokens: formatCount(output).formatted,
+                cacheRead: formatCount(cacheRead).formatted,
+                cacheHitRate: `${hit.toFixed(1)}%`,
+                waitTime: formatTime(wait).formatted,
+            };
         };
         const emptyHero: HeroValue = { value: undefined, unit: '' };
 
@@ -76,6 +105,10 @@ export function StatsChart() {
                     metrics: {
                         requests: statsTotal.request_count.formatted,
                         tokens: statsTotal.total_token.formatted,
+                        inputTokens: statsTotal.input_token.formatted,
+                        outputTokens: statsTotal.output_token.formatted,
+                        cacheRead: statsTotal.cache_read_token.formatted,
+                        cacheHitRate: `${statsTotal.cache_hit_rate.toFixed(1)}%`,
                         waitTime: statsTotal.wait_time.formatted,
                     },
                     chartData: points,
@@ -88,16 +121,14 @@ export function StatsChart() {
 
             const cost = sortedDaily.reduce((acc, s) => acc + s.total_cost.raw, 0);
             const requests = sortedDaily.reduce((acc, s) => acc + s.request_count.raw, 0);
-            const tokens = sortedDaily.reduce((acc, s) => acc + s.total_token.raw, 0);
+            const input = sortedDaily.reduce((acc, s) => acc + s.input_token.raw, 0);
+            const output = sortedDaily.reduce((acc, s) => acc + s.output_token.raw, 0);
+            const cacheRead = sortedDaily.reduce((acc, s) => acc + s.cache_read_token.raw, 0);
             const wait = sortedDaily.reduce((acc, s) => acc + s.wait_time.raw, 0);
             const costFmt = formatMoney(cost).formatted;
             return {
                 hero: { value: costFmt.value, unit: costFmt.unit },
-                metrics: {
-                    requests: formatCount(requests).formatted,
-                    tokens: formatCount(tokens).formatted,
-                    waitTime: formatTime(wait).formatted,
-                },
+                metrics: buildMetrics(requests, input, output, cacheRead, wait),
                 chartData: points,
             };
         }
@@ -113,16 +144,14 @@ export function StatsChart() {
             }));
             const cost = statsHourly.reduce((acc, s) => acc + s.total_cost.raw, 0);
             const requests = statsHourly.reduce((acc, s) => acc + s.request_count.raw, 0);
-            const tokens = statsHourly.reduce((acc, s) => acc + s.total_token.raw, 0);
+            const input = statsHourly.reduce((acc, s) => acc + s.input_token.raw, 0);
+            const output = statsHourly.reduce((acc, s) => acc + s.output_token.raw, 0);
+            const cacheRead = statsHourly.reduce((acc, s) => acc + s.cache_read_token.raw, 0);
             const wait = statsHourly.reduce((acc, s) => acc + s.wait_time.raw, 0);
             const costFmt = formatMoney(cost).formatted;
             return {
                 hero: { value: costFmt.value, unit: costFmt.unit },
-                metrics: {
-                    requests: formatCount(requests).formatted,
-                    tokens: formatCount(tokens).formatted,
-                    waitTime: formatTime(wait).formatted,
-                },
+                metrics: buildMetrics(requests, input, output, cacheRead, wait),
                 chartData: points,
             };
         }
@@ -141,16 +170,14 @@ export function StatsChart() {
 
         const cost = recent.reduce((acc, s) => acc + s.total_cost.raw, 0);
         const requests = recent.reduce((acc, s) => acc + s.request_count.raw, 0);
-        const tokens = recent.reduce((acc, s) => acc + s.total_token.raw, 0);
+        const input = recent.reduce((acc, s) => acc + s.input_token.raw, 0);
+        const output = recent.reduce((acc, s) => acc + s.output_token.raw, 0);
+        const cacheRead = recent.reduce((acc, s) => acc + s.cache_read_token.raw, 0);
         const wait = recent.reduce((acc, s) => acc + s.wait_time.raw, 0);
         const costFmt = formatMoney(cost).formatted;
         return {
             hero: { value: costFmt.value, unit: costFmt.unit },
-            metrics: {
-                requests: formatCount(requests).formatted,
-                tokens: formatCount(tokens).formatted,
-                waitTime: formatTime(wait).formatted,
-            },
+            metrics: buildMetrics(requests, input, output, cacheRead, wait),
             chartData: points,
         };
     }, [period, statsTotal, statsHourly, sortedDaily]);
@@ -201,12 +228,21 @@ export function StatsChart() {
                 </Tabs>
             </header>
 
-            {/* Metrics row */}
-            <div className="mx-5 flex items-baseline gap-6 border-t border-border/60 py-3 text-sm tabular-nums">
+            {/* Metrics row — requests / in / out / cache / hit rate / latency (issue #112) */}
+            <div className="mx-5 flex flex-wrap items-baseline gap-x-5 gap-y-2 border-t border-border/60 py-3 text-sm tabular-nums">
                 <StatItem label={t('metrics.requests')} value={metrics.requests} />
-                <span className="h-4 w-px bg-border/60" />
-                <StatItem label={t('metrics.tokens')} value={metrics.tokens} />
-                <span className="h-4 w-px bg-border/60" />
+                <span className="hidden sm:inline h-4 w-px bg-border/60" />
+                <StatItem label={t('metrics.inputTokens')} value={metrics.inputTokens} />
+                <span className="hidden sm:inline h-4 w-px bg-border/60" />
+                <StatItem label={t('metrics.outputTokens')} value={metrics.outputTokens} />
+                <span className="hidden sm:inline h-4 w-px bg-border/60" />
+                <StatItem label={t('metrics.cacheRead')} value={metrics.cacheRead} />
+                <span className="hidden sm:inline h-4 w-px bg-border/60" />
+                <div className="flex items-baseline gap-1.5">
+                    <span className="text-xs text-muted-foreground">{t('metrics.cacheHitRate')}</span>
+                    <span className="font-medium">{metrics.cacheHitRate}</span>
+                </div>
+                <span className="hidden sm:inline h-4 w-px bg-border/60" />
                 <StatItem label={t('metrics.waitTime')} value={metrics.waitTime} />
             </div>
 

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	dbmodel "github.com/bestruirui/octopus/internal/model"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	openaiOutbound "github.com/bestruirui/octopus/internal/transformer/outbound/openai"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	dbmodel "github.com/xuanli27/octopus/internal/model"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	openaiOutbound "github.com/xuanli27/octopus/internal/transformer/outbound/openai"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"github.com/coder/websocket"
 )
 

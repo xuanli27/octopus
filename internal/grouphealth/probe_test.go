@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 )
 
 func TestBuildProbeRequestForResponses(t *testing.T) {

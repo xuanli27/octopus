@@ -3,7 +3,7 @@ package gemini
 import (
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 func TestConvertGeminiToLLMResponseCarriesMetadata(t *testing.T) {

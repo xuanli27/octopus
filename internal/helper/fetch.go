@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 	"github.com/dlclark/regexp2"
 )
 
@@ -23,7 +23,8 @@ func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {
 	fetchModel := make([]string, 0)
 	switch request.Type {
 	case outbound.OutboundTypeAnthropic:
-		fetchModel, err = fetchAnthropicModels(client, ctx, request)
+		// Issue #91: native Anthropic /models may 404 on OpenAI-compatible relays.
+		fetchModel, err = fetchAnthropicModelsOrOpenAI(client, ctx, request)
 	case outbound.OutboundTypeGemini:
 		fetchModel, err = fetchGeminiModels(client, ctx, request)
 	default:
@@ -53,13 +54,39 @@ func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {
 }
 
 // refer: https://platform.openai.com/docs/api-reference/models/list
+// Issue #91: probe common model-list paths when BaseURL is a site root
+// (e.g. https://example.com → try /v1/models, /api/v1/models, …).
 func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.Channel) ([]string, error) {
-	req, _ := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		request.GetBaseUrl()+"/models",
-		nil,
-	)
+	base := request.GetBaseUrl()
+	urls := openAIModelListURLs(base)
+	if len(urls) == 0 {
+		return nil, fmt.Errorf("empty channel base url")
+	}
+
+	var lastErr error
+	for _, modelsURL := range urls {
+		models, err := fetchOpenAIModelsAt(client, ctx, request, modelsURL)
+		if err != nil {
+			lastErr = fmt.Errorf("%s: %w", modelsURL, err)
+			continue
+		}
+		if len(models) == 0 {
+			lastErr = fmt.Errorf("%s: empty model list", modelsURL)
+			continue
+		}
+		return models, nil
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, fmt.Errorf("no model list endpoint succeeded for %s", base)
+}
+
+func fetchOpenAIModelsAt(client *http.Client, ctx context.Context, request model.Channel, modelsURL string) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)
+	if err != nil {
+		return nil, err
+	}
 	applyDefaultModelRequestHeaders(req, request)
 	req.Header.Set("Authorization", "Bearer "+request.GetChannelKey().ChannelKey)
 
@@ -76,9 +103,59 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 
 	models := make([]string, 0, len(result.Data))
 	for _, m := range result.Data {
-		models = append(models, m.ID)
+		id := strings.TrimSpace(m.ID)
+		if id != "" {
+			models = append(models, id)
+		}
 	}
 	return models, nil
+}
+
+// openAIModelListURLs returns candidate GET URLs for OpenAI-compatible model lists.
+func openAIModelListURLs(baseURL string) []string {
+	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if baseURL == "" {
+		return nil
+	}
+	lower := strings.ToLower(baseURL)
+	out := make([]string, 0, 5)
+	add := func(u string) {
+		u = strings.TrimRight(strings.TrimSpace(u), "/")
+		if u == "" {
+			return
+		}
+		for _, existing := range out {
+			if strings.EqualFold(existing, u) {
+				return
+			}
+		}
+		out = append(out, u)
+	}
+
+	// Already points at a versioned API prefix — only append /models.
+	if hasOpenAIVersionSuffix(lower) {
+		add(baseURL + "/models")
+		return out
+	}
+
+	// Site root (or arbitrary path): probe common layouts used by NewAPI / OneAPI / Sub2API.
+	add(baseURL + "/models")
+	add(baseURL + "/v1/models")
+	add(baseURL + "/api/v1/models")
+	add(baseURL + "/v1beta/models")
+	return out
+}
+
+func hasOpenAIVersionSuffix(lowerBase string) bool {
+	suffixes := []string{
+		"/v1", "/v1beta", "/api/v1", "/openai/v1", "/openai/v1beta",
+	}
+	for _, s := range suffixes {
+		if strings.HasSuffix(lowerBase, s) {
+			return true
+		}
+	}
+	return false
 }
 
 // refer: https://ai.google.dev/api/models
@@ -124,6 +201,7 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 		pageToken = result.NextPageToken
 	}
 	if len(allModels) == 0 {
+		// Gemini-compatible gateways often only expose OpenAI /models.
 		return fetchOpenAIModels(client, ctx, request)
 	}
 	return allModels, nil
@@ -172,9 +250,30 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 		afterID = result.LastID
 	}
 	if len(allModels) == 0 {
+		// Many Anthropic-compatible relays only expose OpenAI-style /v1/models.
 		return fetchOpenAIModels(client, ctx, request)
 	}
 	return allModels, nil
+}
+
+// fetchAnthropicModelsOrOpenAI tries the native Anthropic /models API first; on
+// hard failure falls back to OpenAI-compatible endpoints (issue #91).
+func fetchAnthropicModelsOrOpenAI(client *http.Client, ctx context.Context, request model.Channel) ([]string, error) {
+	models, err := fetchAnthropicModels(client, ctx, request)
+	if err == nil && len(models) > 0 {
+		return models, nil
+	}
+	// fetchAnthropicModels already falls back to OpenAI when the native list is empty.
+	// When the native request itself errors (404/HTML), try OpenAI paths explicitly.
+	if err != nil {
+		if openaiModels, openaiErr := fetchOpenAIModels(client, ctx, request); openaiErr == nil && len(openaiModels) > 0 {
+			return openaiModels, nil
+		} else if openaiErr != nil {
+			return nil, fmt.Errorf("anthropic models: %v; openai fallback: %w", err, openaiErr)
+		}
+		return nil, err
+	}
+	return models, nil
 }
 
 func applyDefaultModelRequestHeaders(req *http.Request, request model.Channel) {

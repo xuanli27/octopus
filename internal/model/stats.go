@@ -3,6 +3,8 @@ package model
 type StatsMetrics struct {
 	InputToken     int64   `json:"input_token" gorm:"bigint"`
 	OutputToken    int64   `json:"output_token" gorm:"bigint"`
+	CacheReadToken int64   `json:"cache_read_token" gorm:"bigint"`  // prompt cache / cache-read tokens (issue #112)
+	CacheWriteToken int64  `json:"cache_write_token" gorm:"bigint"` // cache-write tokens
 	InputCost      float64 `json:"input_cost" gorm:"type:real"`
 	OutputCost     float64 `json:"output_cost" gorm:"type:real"`
 	WaitTime       int64   `json:"wait_time" gorm:"bigint"`
@@ -59,6 +61,8 @@ type StatsSiteModelHourly struct {
 func (s *StatsMetrics) Add(delta StatsMetrics) {
 	s.InputToken += delta.InputToken
 	s.OutputToken += delta.OutputToken
+	s.CacheReadToken += delta.CacheReadToken
+	s.CacheWriteToken += delta.CacheWriteToken
 	s.InputCost += delta.InputCost
 	s.OutputCost += delta.OutputCost
 	s.WaitTime += delta.WaitTime

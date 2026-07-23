@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/log"
 )
 
 // physicalCap 是环形缓冲的物理容量（编译期常量）。

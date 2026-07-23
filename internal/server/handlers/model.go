@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/price"
-	"github.com/bestruirui/octopus/internal/server/middleware"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	"github.com/bestruirui/octopus/internal/server/router"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/price"
+	"github.com/xuanli27/octopus/internal/server/middleware"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	"github.com/xuanli27/octopus/internal/server/router"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )
@@ -66,14 +66,10 @@ func getModelList(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if apiKey.SupportedModels != "" {
-		supportedModels := lo.Map(strings.Split(apiKey.SupportedModels, ","), func(s string, _ int) string {
-			return strings.TrimSpace(s)
-		})
-		models = lo.Filter(models, func(m string, _ int) bool {
-			return lo.Contains(supportedModels, m)
-		})
-	}
+	// Filter by API key allow/deny list (issue #102).
+	models = lo.Filter(models, func(m string, _ int) bool {
+		return apiKey.ModelAllowed(m)
+	})
 
 	if c.GetString("request_type") == "anthropic" {
 		var anthropicModels []model.AnthropicModel

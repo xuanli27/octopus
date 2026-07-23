@@ -8,20 +8,19 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/helper"
-	dbmodel "github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/outlierwindow"
-	"github.com/bestruirui/octopus/internal/relay/balancer"
-	"github.com/bestruirui/octopus/internal/server/resp"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
-	openaiOutbound "github.com/bestruirui/octopus/internal/transformer/outbound/openai"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/helper"
+	dbmodel "github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/outlierwindow"
+	"github.com/xuanli27/octopus/internal/relay/balancer"
+	"github.com/xuanli27/octopus/internal/server/resp"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
+	openaiOutbound "github.com/xuanli27/octopus/internal/transformer/outbound/openai"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -62,13 +61,9 @@ func HandleResponsesCompact(c *gin.Context) {
 		return
 	}
 
-	supportedModels := c.GetString("supported_models")
-	if supportedModels != "" {
-		supportedModelsArray := strings.Split(supportedModels, ",")
-		if !slices.Contains(supportedModelsArray, compactReq.Model) {
-			resp.ErrorWithCode(c, http.StatusBadRequest, CodeRelayModelNotSupported, "model not supported")
-			return
-		}
+	if !apiKeyAllowsModel(c.GetString("supported_models"), c.GetString("model_list_mode"), compactReq.Model) {
+		resp.ErrorWithCode(c, http.StatusBadRequest, CodeRelayModelNotSupported, "model not supported")
+		return
 	}
 
 	requestModel := compactReq.Model
@@ -88,6 +83,7 @@ func HandleResponsesCompact(c *gin.Context) {
 
 	metricsReq := &transformerModel.InternalLLMRequest{Model: requestModel, RawRequest: body}
 	metrics := NewRelayMetrics(apiKeyID, requestModel, body, metricsReq)
+	metrics.SetClientIP(c.ClientIP())
 
 	var lastErr error
 	var lastStatusCode int

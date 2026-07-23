@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/xurl"
+	"github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/xurl"
 	"github.com/samber/lo"
 )
 

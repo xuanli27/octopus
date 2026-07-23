@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/transformer/inbound"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/transformer/inbound"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 	"github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 )

@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/utils/cache"
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/utils/cache"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -358,8 +360,16 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	modelCache, ok := statsModelCache.Get(stats.ID)
 	if !ok {
 		modelCache = model.StatsModel{
-			ID: stats.ID,
+			ID:        stats.ID,
+			Name:      stats.Name,
+			ChannelID: stats.ChannelID,
 		}
+	}
+	if modelCache.Name == "" && stats.Name != "" {
+		modelCache.Name = stats.Name
+	}
+	if modelCache.ChannelID == 0 && stats.ChannelID != 0 {
+		modelCache.ChannelID = stats.ChannelID
 	}
 	modelCache.StatsMetrics.Add(stats.StatsMetrics)
 	statsModelCache.Set(stats.ID, modelCache)
@@ -367,6 +377,42 @@ func StatsModelUpdate(stats model.StatsModel) error {
 	statsModelCacheNeedUpdate[stats.ID] = struct{}{}
 	statsModelCacheNeedUpdateLock.Unlock()
 	return nil
+}
+
+// StatsModelNameUpdate aggregates usage by model name (and last channel id).
+// ID is a stable FNV-1a hash of the lower-cased name so rows are unique per model
+// without requiring a separate sequence (issue #113).
+func StatsModelNameUpdate(modelName string, channelID int, metrics model.StatsMetrics) error {
+	modelName = strings.TrimSpace(modelName)
+	if modelName == "" {
+		return nil
+	}
+	id := statsModelNameID(modelName)
+	return StatsModelUpdate(model.StatsModel{
+		ID:           id,
+		Name:         modelName,
+		ChannelID:    channelID,
+		StatsMetrics: metrics,
+	})
+}
+
+func statsModelNameID(modelName string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(strings.ToLower(strings.TrimSpace(modelName))))
+	v := int(h.Sum32() & 0x7fffffff)
+	if v == 0 {
+		return 1
+	}
+	return v
+}
+
+// StatsModelList returns in-memory model aggregates for the home ranking.
+func StatsModelList() []model.StatsModel {
+	rows := make([]model.StatsModel, 0, statsModelCache.Len())
+	for _, v := range statsModelCache.GetAll() {
+		rows = append(rows, v)
+	}
+	return rows
 }
 
 func StatsAPIKeyUpdate(apiKeyID int, metrics model.StatsMetrics) error {
@@ -563,6 +609,19 @@ func statsRefreshCache(ctx context.Context) error {
 		}
 	}
 	statsHourlyCacheLock.Unlock()
+
+	var loadedModels []model.StatsModel
+	result = dbConn.Find(&loadedModels)
+	if result.Error != nil {
+		return fmt.Errorf("failed to get model stats: %v", result.Error)
+	}
+	statsModelCache.Clear()
+	statsModelCacheNeedUpdateLock.Lock()
+	statsModelCacheNeedUpdate = make(map[int]struct{})
+	statsModelCacheNeedUpdateLock.Unlock()
+	for _, v := range loadedModels {
+		statsModelCache.Set(v.ID, v)
+	}
 
 	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/bestruirui/octopus/internal/apperror"
-	"github.com/bestruirui/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/apperror"
+	"github.com/xuanli27/octopus/internal/model"
 )
 
 const (

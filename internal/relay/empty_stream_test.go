@@ -10,10 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bestruirui/octopus/internal/relay/stream"
-	"github.com/bestruirui/octopus/internal/transformer/inbound"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/relay/stream"
+	"github.com/xuanli27/octopus/internal/transformer/inbound"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 	"github.com/gin-gonic/gin"
 )
 
@@ -112,6 +113,54 @@ func TestPassthroughOpenAIResponsesEmptyStreamFails(t *testing.T) {
 	err := ra.handleStreamResponsePassthroughV2(context.Background(), sseTestResponse(""), cfg)
 	if !errors.Is(err, stream.ErrEmptyUpstreamStream) {
 		t.Fatalf("expected stream.ErrEmptyUpstreamStream for empty passthrough stream, got %v", err)
+	}
+}
+
+func TestIsEmptyUpstreamResponse(t *testing.T) {
+	// Issue #100
+	if !isEmptyUpstreamResponse(nil) {
+		t.Fatalf("nil response is empty")
+	}
+	if !isEmptyUpstreamResponse(&transformerModel.InternalLLMResponse{
+		Object: "chat.completion",
+	}) {
+		t.Fatalf("hollow chat.completion without choices is empty")
+	}
+	stop := "stop"
+	if isEmptyUpstreamResponse(&transformerModel.InternalLLMResponse{
+		Choices: []transformerModel.Choice{{Index: 0, FinishReason: &stop}},
+	}) {
+		t.Fatalf("response with choices is not empty")
+	}
+	if isEmptyUpstreamResponse(&transformerModel.InternalLLMResponse{
+		EmbeddingData: []transformerModel.EmbeddingObject{{Index: 0}},
+	}) {
+		t.Fatalf("embedding response is not empty")
+	}
+	if isEmptyUpstreamResponse(&transformerModel.InternalLLMResponse{
+		Error: &transformerModel.ResponseError{},
+	}) {
+		t.Fatalf("error payload is not empty (real failure)")
+	}
+}
+
+func TestHandleResponseRejectsEmptyBody(t *testing.T) {
+	// Non-stream hollow body must fail before writing to client so retry/failover can run.
+	ra, recorder := newEmptyStreamTestAttempt(t, inbound.InboundTypeOpenAIChat, transformerModel.APIFormatOpenAIChatCompletion, outbound.OutboundTypeOpenAIChat)
+	ra.channel = &model.Channel{Name: "empty-ch", Type: outbound.OutboundTypeOpenAIChat}
+
+	body := `{"id":"","object":"chat.completion","created":0,"model":"","choices":[]}`
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+	err := ra.handleResponse(context.Background(), resp)
+	if !errors.Is(err, ErrEmptyUpstreamResponse) {
+		t.Fatalf("expected ErrEmptyUpstreamResponse, got %v", err)
+	}
+	if recorder.Body.Len() != 0 {
+		t.Fatalf("empty response must not be written to client, got %q", recorder.Body.String())
 	}
 }
 

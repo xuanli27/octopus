@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bestruirui/octopus/internal/transformer/compat"
-	"github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/tokenizer"
-	"github.com/bestruirui/octopus/internal/utils/xurl"
+	"github.com/xuanli27/octopus/internal/transformer/compat"
+	"github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/tokenizer"
+	"github.com/xuanli27/octopus/internal/utils/xurl"
 	"github.com/samber/lo"
 )
 

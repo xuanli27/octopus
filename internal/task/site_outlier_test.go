@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/grouphealth"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/outlierwindow"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/grouphealth"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/outlierwindow"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
 )
 
 // fakeProber 实现 channelProber，按 channelID 返回预设探活结果，并记录探活调用。

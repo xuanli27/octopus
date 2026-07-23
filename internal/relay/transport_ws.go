@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"github.com/coder/websocket"
 )
 

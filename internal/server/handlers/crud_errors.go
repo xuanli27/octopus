@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/bestruirui/octopus/internal/apperror"
+	"github.com/xuanli27/octopus/internal/apperror"
 )
 
 func channelError(code string, message string, err error) *apperror.Error {

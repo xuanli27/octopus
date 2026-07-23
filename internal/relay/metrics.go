@@ -3,21 +3,23 @@ package relay
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
-	"github.com/bestruirui/octopus/internal/conf"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/price"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/utils/log"
-	"github.com/bestruirui/octopus/internal/utils/tokenizer"
+	"github.com/xuanli27/octopus/internal/conf"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/price"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/tokenizer"
 )
 
 // RelayMetrics 负责最终的日志收集与持久化
 type RelayMetrics struct {
 	APIKeyID     int
 	RequestModel string
+	ClientIP     string
 	StartTime    time.Time
 
 	// 首 Token 时间
@@ -50,6 +52,13 @@ func NewRelayMetrics(apiKeyID int, requestModel string, rawBody []byte, req *tra
 		RawRequest:      rawBody,
 		InternalRequest: req,
 	}
+}
+
+func (m *RelayMetrics) SetClientIP(ip string) {
+	if m == nil {
+		return
+	}
+	m.ClientIP = strings.TrimSpace(ip)
 }
 
 func (m *RelayMetrics) SetFirstTokenTime(t time.Time) {
@@ -141,6 +150,12 @@ func (m *RelayMetrics) SaveWithChannelStats(ctx context.Context, success bool, e
 		InputCost:   m.Stats.InputCost,
 		OutputCost:  m.Stats.OutputCost,
 	}
+	if m.CacheReadTokens != nil {
+		globalStats.CacheReadToken = int64(*m.CacheReadTokens)
+	}
+	if m.CacheWriteTokens != nil {
+		globalStats.CacheWriteToken = int64(*m.CacheWriteTokens)
+	}
 	if success {
 		globalStats.RequestSuccess = 1
 	} else {
@@ -156,6 +171,14 @@ func (m *RelayMetrics) SaveWithChannelStats(ctx context.Context, success bool, e
 		op.StatsChannelUpdate(channelID, globalStats)
 	} else {
 		updateFinalChannelUsageStats(channelID, globalStats)
+	}
+	// Issue #113: aggregate per actual model name for home ranking.
+	modelName := strings.TrimSpace(m.ActualModel)
+	if modelName == "" {
+		modelName = strings.TrimSpace(m.RequestModel)
+	}
+	if modelName != "" {
+		_ = op.StatsModelNameUpdate(modelName, channelID, globalStats)
 	}
 	op.StatsSiteModelHourlyRecordAttempts(attempts, m.ActualModel)
 
@@ -226,6 +249,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, success bool, err error, dur
 	relayLog := model.RelayLog{
 		Time:             m.StartTime.Unix(),
 		RequestModelName: m.RequestModel,
+		ClientIP:         m.ClientIP,
 		ChannelName:      channelName,
 		ChannelId:        channelID,
 		ActualModelName:  actualModel,

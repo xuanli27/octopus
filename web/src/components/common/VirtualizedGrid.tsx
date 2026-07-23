@@ -2,6 +2,7 @@
 
 import {
     type ReactNode,
+    type WheelEvent as ReactWheelEvent,
     useCallback,
     useEffect,
     useMemo,
@@ -170,8 +171,41 @@ export function VirtualizedGrid<T>({
         onReachEnd();
     }, [onReachEnd, reachEndEnabled, itemRowCount, reachEndOffset, virtualRows, estimateItemHeight, gap]);
 
+    // Issue #104: wheel over empty padding / gutters between cards should still scroll.
+    // Nested absolute rows can leave "visual blank" that some browsers attach to a non-scrolling
+    // ancestor; forward wheel to the scrollport when the event isn't from an inner scroller.
+    const handleWheelCapture = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
+        const scroller = containerRef.current;
+        if (!scroller || event.ctrlKey || event.metaKey) return;
+
+        let node = event.target as HTMLElement | null;
+        while (node && node !== scroller) {
+            const style = window.getComputedStyle(node);
+            const oy = style.overflowY;
+            const canScrollY =
+                (oy === 'auto' || oy === 'scroll' || oy === 'overlay') &&
+                node.scrollHeight > node.clientHeight + 1;
+            if (canScrollY) {
+                // Nested scrollable (e.g. card body): leave native handling alone.
+                return;
+            }
+            node = node.parentElement;
+        }
+
+        if (scroller.scrollHeight <= scroller.clientHeight + 1) return;
+
+        const prev = scroller.scrollTop;
+        scroller.scrollTop += event.deltaY;
+        if (scroller.scrollTop !== prev) {
+            event.preventDefault();
+        }
+    }, []);
+
     return (
-        <div className="relative h-full min-h-0 w-full">
+        <div
+            className="relative h-full min-h-0 w-full"
+            onWheelCapture={handleWheelCapture}
+        >
             <div
                 ref={containerRef}
                 onScroll={onScroll ? (event) => {

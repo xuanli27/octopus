@@ -15,14 +15,14 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/bestruirui/octopus/internal/db"
-	"github.com/bestruirui/octopus/internal/model"
-	"github.com/bestruirui/octopus/internal/op"
-	"github.com/bestruirui/octopus/internal/relay/balancer"
-	"github.com/bestruirui/octopus/internal/transformer/inbound"
-	transformerModel "github.com/bestruirui/octopus/internal/transformer/model"
-	"github.com/bestruirui/octopus/internal/transformer/outbound"
-	"github.com/bestruirui/octopus/internal/utils/tokenizer"
+	dbpkg "github.com/xuanli27/octopus/internal/db"
+	"github.com/xuanli27/octopus/internal/model"
+	"github.com/xuanli27/octopus/internal/op"
+	"github.com/xuanli27/octopus/internal/relay/balancer"
+	"github.com/xuanli27/octopus/internal/transformer/inbound"
+	transformerModel "github.com/xuanli27/octopus/internal/transformer/model"
+	"github.com/xuanli27/octopus/internal/transformer/outbound"
+	"github.com/xuanli27/octopus/internal/utils/tokenizer"
 	"github.com/coder/websocket"
 	"github.com/gin-gonic/gin"
 )
@@ -358,6 +358,78 @@ func TestHandleStreamResponsePassthroughAnthropicClientCancelAfterTerminal(t *te
 		t.Fatalf("expected usage input=3 output=5 collected into metrics, got input=%d output=%d", req.metrics.Stats.InputToken, req.metrics.Stats.OutputToken)
 	}
 }
+
+// Issue #116: Chat 流完整送达（含 finish_reason）后客户端立即断连。
+// handleStreamResponseV2 会因读侧被取消返回 error，但聚合响应已带 finish_reason，
+// 应被 streamResponseCompleted 识别，attempt 层归一化为成功。
+func TestHandleStreamResponseChatClientCancelAfterFinishReason(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	rawSSE := strings.Join([]string{
+		`data: {"id":"chatcmpl_1","object":"chat.completion.chunk","created":1,"model":"gpt-4o","choices":[{"index":0,"delta":{"role":"assistant","content":"hello"},"finish_reason":null}]}`,
+		"",
+		`data: {"id":"chatcmpl_1","object":"chat.completion.chunk","created":1,"model":"gpt-4o","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":1,"total_tokens":4}}`,
+		"",
+		`data: [DONE]`,
+		"",
+	}, "\n")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	writer := &notifyStreamWriter{header: http.Header{}}
+	writer.onWrite = func(p []byte) {
+		if bytes.Contains(p, []byte(`"finish_reason":"stop"`)) {
+			cancel()
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	internalReq := &transformerModel.InternalLLMRequest{
+		Model:        "gpt-4o",
+		Stream:       boolPtr(true),
+		RawAPIFormat: transformerModel.APIFormatOpenAIChatCompletion,
+	}
+	req := &relayRequest{
+		c:               c,
+		inAdapter:       inbound.Get(inbound.InboundTypeOpenAIChat),
+		internalRequest: internalReq,
+		metrics:         NewRelayMetrics(1, internalReq.Model, nil, internalReq),
+		apiKeyID:        1,
+		requestModel:    internalReq.Model,
+		streamWriter:    writer,
+	}
+	ra := &relayAttempt{
+		relayRequest: req,
+		outAdapter:   outbound.Get(outbound.OutboundTypeOpenAIChat),
+		channel:      &model.Channel{Type: outbound.OutboundTypeOpenAIChat},
+	}
+
+	response := &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"text/event-stream"}},
+		Body:       &stallUntilCancelBody{ctx: ctx, data: []byte(rawSSE)},
+	}
+
+	err := ra.handleStreamResponseV2(ctx, response)
+	// 无 TerminalEvents 时处理器会把断连原样返回；业务层靠 finish_reason 归一化。
+	if err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected nil or context.Canceled after complete chat stream, got: %v", err)
+	}
+	if !ra.streamPayloadWritten.Load() {
+		t.Fatalf("expected stream payload to be written before cancel")
+	}
+	ra.collectResponse()
+	if !streamResponseCompleted(req.metrics.InternalResponse) {
+		t.Fatalf("expected aggregated chat response to be complete after finish_reason, got %+v",
+			req.metrics.InternalResponse)
+	}
+}
+
+// Mid-stream cancel incompleteness is covered by TestStreamResponseCompleted
+// (missing finish_reason => incomplete). Avoid stallUntilCancelBody here:
+// Chat transform may skip a write, leaving the stall body blocked forever.
 
 func TestHandlerPassthroughsOpenAIResponsesSameProtocolStream(t *testing.T) {
 	gin.SetMode(gin.TestMode)

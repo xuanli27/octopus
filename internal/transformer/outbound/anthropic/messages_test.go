@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	anthropicModel "github.com/bestruirui/octopus/internal/transformer/inbound/anthropic"
-	"github.com/bestruirui/octopus/internal/transformer/model"
+	anthropicModel "github.com/xuanli27/octopus/internal/transformer/inbound/anthropic"
+	"github.com/xuanli27/octopus/internal/transformer/model"
 )
 
 func TestTransformRequestRawRewritesModel(t *testing.T) {

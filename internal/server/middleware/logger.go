@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	"github.com/bestruirui/octopus/internal/utils/log"
+	"github.com/xuanli27/octopus/internal/utils/log"
 	"github.com/gin-gonic/gin"
 )
 
