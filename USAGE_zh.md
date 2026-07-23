@@ -105,7 +105,7 @@ Octopus 是一个 **LLM API 聚合与负载均衡服务**。简单说，它帮�
 
 **Docker 直接运行：**
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 xuanli27/octopus
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 ghcr.io/xuanli27/octopus
 ```
 
 **docker compose：**
@@ -114,7 +114,7 @@ wget https://raw.githubusercontent.com/xuanli27/octopus/refs/heads/dev/docker-co
 docker compose up -d
 ```
 
-> ⚠️ **镜像一定要用 `xuanli27/octopus`**（带站点功能的版本）。如果你用的是 `bestrui/octopus` 等原版镜像，是看不到"站点"页面的。Release 二进制、源码编译方式见 [README_zh.md](README_zh.md)。
+> ⚠️ **镜像一定要用 `ghcr.io/xuanli27/octopus`**（带站点功能的版本）。如果你用的是 `bestrui/octopus` 等原版镜像，是看不到"站点"页面的。Release 二进制、源码编译方式见 [README_zh.md](README_zh.md)。
 
 ### 4.2 首次登录
 

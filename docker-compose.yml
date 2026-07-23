@@ -1,6 +1,6 @@
 services:
   octopus:
-    image: xuanli27/octopus
+    image: ghcr.io/xuanli27/octopus
     ports:
        - '8080:8080'
     volumes:      
