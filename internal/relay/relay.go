@@ -170,8 +170,16 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 	for iter.Next() {
 		select {
 		case <-c.Request.Context().Done():
-			log.Debugf("request context canceled, stopping retry")
-			metrics.SaveWithChannelStats(c.Request.Context(), false, context.Canceled, iter.Attempts(), false)
+			// Client may cancel after a previous attempt already delivered a full
+			// answer (or while we were about to failover). Prefer success when
+			// metrics already show a completed stream (#111/#116).
+			if metricsSuggestCompletedStream(metrics) {
+				log.Debugf("request context canceled but stream already complete, treating as success")
+				metrics.SaveWithChannelStats(c.Request.Context(), true, nil, iter.Attempts(), false)
+			} else {
+				log.Debugf("request context canceled, stopping retry")
+				metrics.SaveWithChannelStats(c.Request.Context(), false, context.Canceled, iter.Attempts(), false)
+			}
 			return
 		default:
 		}
@@ -256,8 +264,13 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 					retryNum, maxSameChannelRetries, channel.Name, delay)
 				select {
 				case <-c.Request.Context().Done():
-					log.Debugf("request context canceled during retry backoff")
-					metrics.SaveWithChannelStats(c.Request.Context(), false, context.Canceled, iter.Attempts(), false)
+					if metricsSuggestCompletedStream(metrics) {
+						log.Debugf("request context canceled during retry backoff but stream complete, treating as success")
+						metrics.SaveWithChannelStats(c.Request.Context(), true, nil, iter.Attempts(), false)
+					} else {
+						log.Debugf("request context canceled during retry backoff")
+						metrics.SaveWithChannelStats(c.Request.Context(), false, context.Canceled, iter.Attempts(), false)
+					}
 					return
 				case <-time.After(delay):
 				}
@@ -339,7 +352,13 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			return
 		}
 		if result.Canceled {
-			metrics.SaveWithChannelStats(c.Request.Context(), false, result.Err, iter.Attempts(), false)
+			// Double-check completion from metrics (soft finish_reason / usage).
+			if metricsSuggestCompletedStream(metrics) {
+				log.Debugf("client cancel after completed stream metrics, treating as success")
+				metrics.SaveWithChannelStats(c.Request.Context(), true, nil, iter.Attempts(), false)
+			} else {
+				metrics.SaveWithChannelStats(c.Request.Context(), false, result.Err, iter.Attempts(), false)
+			}
 			return
 		}
 		if result.ResetConversation {
@@ -352,7 +371,14 @@ func Handler(inboundType inbound.InboundType, c *gin.Context) {
 			return
 		}
 		if result.Written {
-			metrics.SaveWithChannelStats(c.Request.Context(), false, result.Err, iter.Attempts(), false)
+			// Stream started but failed mid-way. If usage/content already look
+			// complete (common when upstream drops after last token), count success.
+			if metricsSuggestCompletedStream(metrics) {
+				log.Debugf("stream written then error but metrics complete, treating as success")
+				metrics.SaveWithChannelStats(c.Request.Context(), true, nil, iter.Attempts(), false)
+			} else {
+				metrics.SaveWithChannelStats(c.Request.Context(), false, result.Err, iter.Attempts(), false)
+			}
 			return
 		}
 		lastErr = result.Err
