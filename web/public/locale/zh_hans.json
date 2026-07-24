@@ -553,6 +553,18 @@
         "rose": "Rose",
         "violet": "Violet"
       }
+    },
+    "quickLinks": {
+      "title": "快捷入口",
+      "hint": "渠道与价格在主导航「更多」中，也可从这里进入。",
+      "siteChannel": "站点渠道",
+      "siteChannelDesc": "投影渠道 · 源密钥 · 模型路由",
+      "manualChannel": "普通渠道",
+      "manualChannelDesc": "手动 Base URL + 密钥",
+      "pricing": "模型价格",
+      "pricingDesc": "价格表与倍率",
+      "connect": "接入站点",
+      "connectDesc": "账号同步与签到"
     }
   },
   "group": {
@@ -745,6 +757,13 @@
         "runSuccess": "已执行自动分组",
         "runFailed": "执行自动分组失败"
       }
+    },
+    "emptyState": {
+      "title": "还没有对外分组",
+      "description": "对外分组名 = 客户端请求的 model。可手动创建，或开启自动分组从投影渠道生成。",
+      "create": "创建分组",
+      "autoGroup": "自动分组",
+      "goConnect": "去接入站点"
     }
   },
   "model": {
@@ -830,7 +849,9 @@
       "transportInput": "传输输入",
       "billInput": "计费输入",
       "cacheRead": "缓存读取",
-      "cacheWrite": "缓存写入"
+      "cacheWrite": "缓存写入",
+      "canceled": "已取消",
+      "timeout": "超时"
     },
     "filters": {
       "keywordPlaceholder": "搜索模型、API Key 或内容",

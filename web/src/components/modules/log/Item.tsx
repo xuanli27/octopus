@@ -238,14 +238,56 @@ function getWSRecoveryBadgeMeta(recovery: RelayLogWSRecovery | null | undefined,
     }
 }
 
-function getAttemptStatusMeta(status: AttemptStatus, t: ReturnType<typeof useTranslations<'log.card'>>) {
-    switch (status) {
+function classifyAttemptKind(status: AttemptStatus, msg?: string, reason?: string) {
+    const text = `${msg || ''} ${reason || ''}`.toLowerCase();
+    if (status === 'circuit_break') return 'circuit_break' as const;
+    if (status === 'success') return 'success' as const;
+    if (
+        status === 'skipped' &&
+        (text.includes('client canceled') || text.includes('client cancelled') || text.includes('context canceled'))
+    ) {
+        return 'canceled' as const;
+    }
+    if (
+        text.includes('timeout=first_token') ||
+        text.includes('first token timeout') ||
+        text.includes('timeout=request') ||
+        text.includes('request timeout')
+    ) {
+        return 'timeout' as const;
+    }
+    if (status === 'skipped') return 'skipped' as const;
+    return 'failed' as const;
+}
+
+function getAttemptStatusMeta(
+    status: AttemptStatus,
+    t: ReturnType<typeof useTranslations<'log.card'>>,
+    msg?: string,
+    reason?: string,
+) {
+    const kind = classifyAttemptKind(status, msg, reason);
+    switch (kind) {
         case 'success':
             return {
                 label: t('success'),
                 badgeClassName: 'bg-primary/15 text-primary',
                 containerClassName: 'bg-primary/5 border-primary/20 hover:bg-primary/10',
                 messageClassName: 'text-primary/90 border-primary/30',
+            };
+        case 'canceled':
+            return {
+                label: t('canceled'),
+                badgeClassName: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+                containerClassName: 'bg-sky-500/5 border-sky-500/20 hover:bg-sky-500/10',
+                messageClassName: 'text-sky-700 dark:text-sky-300 border-sky-500/30',
+            };
+        case 'timeout':
+            return {
+                label: t('timeout'),
+                badgeClassName: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
+                containerClassName: 'bg-orange-500/5 border-orange-500/20 hover:bg-orange-500/10',
+                messageClassName: 'text-orange-700 dark:text-orange-300 border-orange-500/30',
             };
         case 'skipped':
             return {
@@ -296,7 +338,7 @@ function RetryBadgeWithTooltip({ channelName, brandColor, attempts }: RetryBadge
             </TooltipTrigger>
             <TooltipContent className="border bg-card p-2 min-w-[280px] shadow-sm rounded-3xl flex flex-col gap-1">
                 {merged.map((attempt, idx) => {
-                    const statusMeta = getAttemptStatusMeta(attempt.status, t);
+                    const statusMeta = getAttemptStatusMeta(attempt.status, t, attempt.msg, attempt.reason);
 
                     return (
                         <div key={idx} className="flex flex-col w-full">
@@ -883,7 +925,7 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                                                                         });
                                                                     }
                                                                     return merged.map((attempt, idx) => {
-                                                                        const statusMeta = getAttemptStatusMeta(attempt.status, t);
+                                                                        const statusMeta = getAttemptStatusMeta(attempt.status, t, attempt.msg, attempt.reason);
                                                                         const attemptTarget = attemptTargets[attempt.originalIndex] ?? null;
                                                                         const canDisableAttempt = attempt.status === 'failed' && !!attemptTarget?.can_disable_model;
                                                                         const sanitizedMsg = sanitizeErrorMessage(attempt.msg);

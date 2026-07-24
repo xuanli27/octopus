@@ -553,6 +553,18 @@
         "rose": "Rose",
         "violet": "Violet"
       }
+    },
+    "quickLinks": {
+      "title": "Shortcuts",
+      "hint": "Channels and pricing live under More in the main nav — also available here.",
+      "siteChannel": "Site channels",
+      "siteChannelDesc": "Projected channels · source keys · model routes",
+      "manualChannel": "Manual channels",
+      "manualChannelDesc": "Custom Base URL + keys",
+      "pricing": "Model pricing",
+      "pricingDesc": "Price table and multipliers",
+      "connect": "Connect sites",
+      "connectDesc": "Account sync and check-in"
     }
   },
   "group": {
@@ -745,6 +757,13 @@
         "runSuccess": "Auto grouping has run",
         "runFailed": "Failed to run auto grouping"
       }
+    },
+    "emptyState": {
+      "title": "No public routes yet",
+      "description": "A public group name is the client model name. Create one manually or auto-group from projected channels.",
+      "create": "Create group",
+      "autoGroup": "Auto-group",
+      "goConnect": "Go connect sites"
     }
   },
   "model": {
@@ -830,7 +849,9 @@
       "transportInput": "Transport Input",
       "billInput": "Billed Input",
       "cacheRead": "Cache Read",
-      "cacheWrite": "Cache Write"
+      "cacheWrite": "Cache Write",
+      "canceled": "Canceled",
+      "timeout": "Timeout"
     },
     "filters": {
       "keywordPlaceholder": "Search model, API key or content",

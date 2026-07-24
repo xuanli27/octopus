@@ -68,6 +68,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSettingStore } from "@/stores/setting";
 import { CheckinPanel } from "./CheckinPanel";
+import { SiteConnectStrip } from "./ConnectStrip";
 import { SiteEditDialog } from "./SiteEditDialog";
 import { BatchEditDialog } from "./BatchEditDialog";
 import { AccountEditDialog } from "./AccountEditDialog";
@@ -1960,6 +1961,7 @@ export function Site() {
         childLayout={false}
         animateChildren={false}
       >
+        <SiteConnectStrip />
         <CheckinPanel
           sites={sites}
           inventory={inventory}

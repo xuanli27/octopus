@@ -553,6 +553,18 @@
         "rose": "Rose",
         "violet": "Violet"
       }
+    },
+    "quickLinks": {
+      "title": "快捷入口",
+      "hint": "供應源與價格在主導航「更多」中，也可從這裡進入。",
+      "siteChannel": "站點供應源",
+      "siteChannelDesc": "投影供應源 · 源密鑰 · 模型路由",
+      "manualChannel": "一般供應源",
+      "manualChannelDesc": "手動 Base URL + 密鑰",
+      "pricing": "模型價格",
+      "pricingDesc": "價格表與倍率",
+      "connect": "接入站點",
+      "connectDesc": "帳號同步與簽到"
     }
   },
   "group": {
@@ -745,6 +757,13 @@
         "runSuccess": "已執行自動分組",
         "runFailed": "執行自動分組失敗"
       }
+    },
+    "emptyState": {
+      "title": "還沒有對外分組",
+      "description": "對外分組名 = 用戶端請求的 model。可手動建立，或開啟自動分組從投影供應源生成。",
+      "create": "建立分組",
+      "autoGroup": "自動分組",
+      "goConnect": "去接入站點"
     }
   },
   "model": {
@@ -830,7 +849,9 @@
       "transportInput": "傳輸輸入",
       "billInput": "計費輸入",
       "cacheRead": "快取讀取",
-      "cacheWrite": "快取寫入"
+      "cacheWrite": "快取寫入",
+      "canceled": "已取消",
+      "timeout": "逾時"
     },
     "filters": {
       "keywordPlaceholder": "搜尋模型、API Key 或內容",
