@@ -439,6 +439,9 @@ function invalidateSiteChannelAndRelated(queryClient: ReturnType<typeof useQuery
     queryClient.invalidateQueries({ queryKey: ['site-channel', 'list'] });
     queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
     queryClient.invalidateQueries({ queryKey: ['models', 'channel'] });
+    queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+    queryClient.invalidateQueries({ queryKey: ['runtime'] });
+    queryClient.invalidateQueries({ queryKey: ['group-health'] });
 }
 
 export function useSiteChannelList(options: { includeHistory?: boolean } = {}) {

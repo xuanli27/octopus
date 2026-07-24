@@ -63,6 +63,14 @@ func (r *recentHealthRing) countSince(since time.Time) (success, failed int64) {
 
 var recentChannelHealth sync.Map // int -> *recentHealthRing
 
+// StatsChannelRecentClear drops sliding-window samples for a channel (e.g. after config change).
+func StatsChannelRecentClear(channelID int) {
+	if channelID <= 0 {
+		return
+	}
+	recentChannelHealth.Delete(channelID)
+}
+
 // StatsChannelRecentRecord records one request outcome for sliding-window health.
 func StatsChannelRecentRecord(channelID int, success bool) {
 	if channelID <= 0 {

@@ -43,3 +43,18 @@ func TestStatsChannelRecentSnapshotWindow(t *testing.T) {
 		t.Fatalf("total=%d", found.TotalRequests)
 	}
 }
+
+
+func TestStatsChannelRecentClear(t *testing.T) {
+	const id = 910002
+	recentChannelHealth.Delete(id)
+	StatsChannelRecentRecord(id, false)
+	StatsChannelRecentRecord(id, false)
+	StatsChannelRecentClear(id)
+	snap := StatsChannelRecentSnapshot(time.Hour)
+	for _, row := range snap {
+		if row.ChannelID == id {
+			t.Fatalf("expected channel %d cleared from recent snapshot", id)
+		}
+	}
+}
