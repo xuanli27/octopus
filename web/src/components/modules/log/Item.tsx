@@ -108,6 +108,7 @@ function mergeAdjacentAttempts(attempts: ChannelAttempt[]): MergedAttempt[] {
             && last.model_name === a.model_name
             && last.status === a.status
             && (last.msg ?? '') === (a.msg ?? '')
+            && (last.reason ?? '') === (a.reason ?? '')
         ) {
             last.repeat += 1;
             last.lastAttemptNum = a.attempt_num;
@@ -315,6 +316,11 @@ function RetryBadgeWithTooltip({ channelName, brandColor, attempts }: RetryBadge
                                     <span className="text-[10px] text-muted-foreground">
                                         {attempt.model_name} • {formatDuration(attempt.totalDuration)}
                                     </span>
+                                    {attempt.reason ? (
+                                        <span className="truncate text-[10px] font-mono text-muted-foreground/80">
+                                            {attempt.reason}
+                                        </span>
+                                    ) : null}
                                 </div>
                                 {attempt.repeat > 1 ? (
                                     <Badge variant="outline" className="shrink-0 h-5 px-1.5 text-[10px] font-semibold tabular-nums">
@@ -861,6 +867,7 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                                                                             && last.model_name === a.model_name
                                                                             && last.status === a.status
                                                                             && (last.msg ?? '') === (a.msg ?? '')
+                                                                            && (last.reason ?? '') === (a.reason ?? '')
                                                                         ) {
                                                                             last.repeat += 1;
                                                                             last.lastAttemptNum = a.attempt_num;
@@ -929,6 +936,11 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                                                                                         ) : null}
                                                                                     </div>
                                                                                 </div>
+                                                                                {attempt.reason ? (
+                                                                                    <div className="pl-2 border-l-2 border-border/60 text-[11px] leading-relaxed text-muted-foreground font-mono break-all">
+                                                                                        {t('routeReason')}: {attempt.reason}
+                                                                                    </div>
+                                                                                ) : null}
                                                                                 {sanitizedMsg ? (
                                                                                     <div className={cn('pl-2 border-l-2 text-[11px] leading-relaxed whitespace-pre-wrap wrap-break-word', statusMeta.messageClassName)}>
                                                                                         {sanitizedMsg}

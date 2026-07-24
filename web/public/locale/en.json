@@ -218,6 +218,15 @@
       "label": "Group Health Checks",
       "description": "When enabled, show the home health summary, group-card health status, and allow manual health checks."
     },
+    "requestTimeout": {
+      "title": "Non-stream request timeout",
+      "hint": "Applies to non-stream upstream requests only. 0 means unlimited (still follows client disconnect). For streams use group first-token timeout.",
+      "seconds": {
+        "label": "Timeout (seconds)",
+        "placeholder": "0",
+        "description": "Seconds. On timeout the attempt fails and may failover instead of hanging forever."
+      }
+    },
     "circuitBreaker": {
       "title": "Circuit Breaker",
       "threshold": {
@@ -656,7 +665,7 @@
     "empty": "No groups yet, click the button above to create one",
     "autoGroup": {
       "title": "Auto Group Configuration",
-      "description": "Add channels or site groups to the list, and the system will automatically add models to matching model groups by group name or regex.",
+      "description": "Configure auto-group rules per channel; models are attached to matching public groups by name or regex.",
       "loadFailed": "Failed to load auto group configuration: {message}",
       "searchPlaceholder": "Search...",
       "runAll": "Run all enabled now",
@@ -667,6 +676,14 @@
       "global": {
         "title": "Global default mode",
         "description": "When enabled, all site-projected channels use the selected match mode. Per-channel settings below are kept and take effect after the global mode is disabled."
+      },
+      "createMissing": {
+        "title": "Create missing groups on exact match",
+        "description": "When enabled, exact-match auto-group creates a RoundRobin group for each channel model that has no same-named public group, and attaches it. Fuzzy/regex modes never create groups."
+      },
+      "normalize": {
+        "title": "Normalize model names on exact match",
+        "description": "When enabled, exact match ignores provider prefixes and date suffixes (e.g. openai/gpt-4o-2024-08-06 matches public group gpt-4o). Create-missing also uses the normalized public name."
       },
       "sections": {
         "channels": "Channels"
@@ -768,6 +785,7 @@
       "failed": "Failed",
       "skipped": "Skipped",
       "circuitBreak": "Circuit Break",
+      "routeReason": "Route",
       "disableModel": "Disable Model",
       "disabling": "Disabling",
       "disabled": "Disabled",
@@ -959,7 +977,7 @@
   },
   "siteSync": {
     "errors": {
-      "missingGroupKey": "Group \"{groupKey}\" has no available key. Create a key for this group on the site and sync again."
+      "missingGroupKey": "Upstream group \"{groupKey}\" has no available source key. Create or paste a source key for this group, then sync again."
     }
   },
   "errors": {
@@ -992,8 +1010,8 @@
       "model_not_found": "The site model was not found.",
       "route_update_failed": "Failed to update model routes. Try again later.",
       "model_disable_failed": "Failed to update model disabled state. Try again later.",
-      "key_create_failed": "Failed to create the site key. Check the site status or try again later.",
-      "source_key_update_failed": "Failed to update source keys. Check your input and try again.",
+      "key_create_failed": "Failed to create the source key. Check the site management credential or try again later.",
+      "source_key_update_failed": "Failed to update the source key. Check your input and try again.",
       "project_failed": "Failed to sync site channel projection. Try again later."
     },
     "channel": {
@@ -1018,20 +1036,20 @@
     },
     "relay": {
       "model_not_supported": "This API key does not support the requested model.",
-      "model_not_found": "The model was not found or has no configured group.",
+      "model_not_found": "The model was not found or has no configured public group.",
       "no_available_channel": "No available channel.",
       "channel_disabled": "The channel is disabled.",
-      "no_available_key": "No available key.",
+      "no_available_key": "No available source key.",
       "upstream_failed": "The upstream request failed.",
       "timeout": "The request timed out.",
       "circuit_breaker_tripped": "The channel circuit breaker is tripped. Try again later."
     },
     "site": {
       "sync": {
-        "missing_group_key": "Group \"{groupKey}\" has no available key. Create a key for this group on the site and sync again.",
-        "group_models_unresolved": "Could not resolve models for group \"{groupKey}\". Check the group model configuration or key permissions.",
-        "no_group_result": "Site account sync failed: no group sync result is available.",
-        "all_groups_unresolved": "Site account sync failed: all groups could not confirm models. Historical models were kept.",
+        "missing_group_key": "Upstream group \"{groupKey}\" has no available source key. Create or paste a source key for this group, then sync again.",
+        "group_models_unresolved": "Could not resolve models for upstream group \"{groupKey}\". Check the model configuration or source key permissions.",
+        "no_group_result": "Site account sync failed: no upstream group sync result is available.",
+        "all_groups_unresolved": "Site account sync failed: none of the upstream groups could confirm models. Historical models were kept.",
         "unsupported_platform": "Unsupported site platform: {platform}.",
         "snapshot_nil": "The sync result is empty. Try again later."
       },
@@ -1057,8 +1075,8 @@
         "persist_failed": "Failed to save imported data. Try again later."
       },
       "sub2api": {
-        "api_key_required": "Sub2API sync requires an API key. Create a key on the site and sync again.",
-        "model_api_key_required": "Sub2API model discovery requires an API key. Create a key on the site and sync again.",
+        "api_key_required": "Sub2API sync requires a source key. Create or paste a source key on the site, then sync again.",
+        "model_api_key_required": "Sub2API model discovery requires a source key. Create or paste a source key on the site, then sync again.",
         "envelope_failed": "Sub2API returned an error. Check the access token, permissions, or site status.",
         "missing_data": "Sub2API response is missing required data. Check site compatibility or try again later."
       }

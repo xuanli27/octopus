@@ -218,6 +218,15 @@
       "label": "分组健康检查",
       "description": "启用后显示首页分组健康摘要、分组卡片健康状态，并允许手动运行健康检查。"
     },
+    "requestTimeout": {
+      "title": "非流式请求超时",
+      "hint": "仅作用于非流式上游请求总时长。0 表示不限制，仍跟随客户端断开。流式请用分组「首字超时」。",
+      "seconds": {
+        "label": "超时秒数",
+        "placeholder": "0",
+        "description": "单位秒。超时后当前尝试失败并切换/返回错误，不会无限挂起。"
+      }
+    },
     "circuitBreaker": {
       "title": "熔断器配置",
       "threshold": {
@@ -656,7 +665,7 @@
     "empty": "暂无分组，点击左上角按钮创建",
     "autoGroup": {
       "title": "自动分组配置",
-      "description": "将渠道或站点分组加入列表后，系统会按模型组名称或正则自动把模型加入匹配的模型组。",
+      "description": "为渠道配置自动入组规则后，系统会按对外分组名称或正则，把渠道模型挂到匹配的对外分组。",
       "loadFailed": "加载自动分组配置失败：{message}",
       "searchPlaceholder": "搜索...",
       "runAll": "立即执行全部已启用",
@@ -667,6 +676,14 @@
       "global": {
         "title": "全局默认模式",
         "description": "开启后，所有站点投影渠道会统一使用所选匹配方式；下方单独渠道设置会保留，并在全局关闭后生效。"
+      },
+      "createMissing": {
+        "title": "精确匹配时自动创建缺失分组",
+        "description": "开启后，当渠道使用精确匹配且模型尚无同名对外分组时，会自动创建 RoundRobin 分组并挂载该模型。模糊/正则匹配不会创建。"
+      },
+      "normalize": {
+        "title": "精确匹配时归一化模型名",
+        "description": "开启后，精确匹配会忽略供应商前缀与日期后缀，例如 openai/gpt-4o-2024-08-06 可匹配对外分组 gpt-4o；自动创建缺失分组时也使用归一化后的名称。"
       },
       "sections": {
         "channels": "渠道列表"
@@ -768,6 +785,7 @@
       "failed": "失败",
       "skipped": "跳过",
       "circuitBreak": "熔断",
+      "routeReason": "选路",
       "disableModel": "禁用模型",
       "disabling": "禁用中",
       "disabled": "已禁用",
@@ -959,7 +977,7 @@
   },
   "siteSync": {
     "errors": {
-      "missingGroupKey": "分组“{groupKey}”没有可用的 Key。请先到站点创建这个分组的 Key，再重新同步。"
+      "missingGroupKey": "上游分组“{groupKey}”没有可用的源密钥。请先创建或粘贴该分组的源密钥，再重新同步。"
     }
   },
   "errors": {
@@ -992,8 +1010,8 @@
       "model_not_found": "站点模型不存在。",
       "route_update_failed": "更新模型路由失败，请稍后重试。",
       "model_disable_failed": "更新模型禁用状态失败，请稍后重试。",
-      "key_create_failed": "创建站点 Key 失败，请检查站点状态或稍后重试。",
-      "source_key_update_failed": "更新源 Key 失败，请检查输入后重试。",
+      "key_create_failed": "创建源密钥失败，请检查站点管理凭证或稍后重试。",
+      "source_key_update_failed": "更新源密钥失败，请检查输入后重试。",
       "project_failed": "同步站点渠道投影失败，请稍后重试。"
     },
     "channel": {
@@ -1018,20 +1036,20 @@
     },
     "relay": {
       "model_not_supported": "当前 API Key 不支持该模型。",
-      "model_not_found": "模型不存在或未配置可用分组。",
+      "model_not_found": "模型不存在或未配置可用的对外分组。",
       "no_available_channel": "没有可用通道。",
       "channel_disabled": "通道已禁用。",
-      "no_available_key": "没有可用 Key。",
+      "no_available_key": "没有可用源密钥。",
       "upstream_failed": "上游请求失败。",
       "timeout": "请求超时。",
       "circuit_breaker_tripped": "通道熔断中，请稍后重试。"
     },
     "site": {
       "sync": {
-        "missing_group_key": "分组“{groupKey}”没有可用的 Key。请先到站点创建这个分组的 Key，再重新同步。",
-        "group_models_unresolved": "无法确认分组“{groupKey}”的模型，请检查分组模型配置或 Key 权限。",
-        "no_group_result": "站点账号同步失败：没有可用的分组同步结果。",
-        "all_groups_unresolved": "站点账号同步失败：所有分组都未能确认模型，已保留历史模型。",
+        "missing_group_key": "上游分组“{groupKey}”没有可用的源密钥。请先创建或粘贴该分组的源密钥，再重新同步。",
+        "group_models_unresolved": "无法确认上游分组“{groupKey}”的模型，请检查模型配置或源密钥权限。",
+        "no_group_result": "站点账号同步失败：没有可用的上游分组同步结果。",
+        "all_groups_unresolved": "站点账号同步失败：所有上游分组都未能确认模型，已保留历史模型。",
         "unsupported_platform": "不支持的站点平台：{platform}。",
         "snapshot_nil": "同步结果为空，请稍后重试。"
       },
@@ -1057,8 +1075,8 @@
         "persist_failed": "保存导入数据失败，请稍后重试。"
       },
       "sub2api": {
-        "api_key_required": "Sub2API 同步需要 API Key。请先在站点创建一个 Key 后再重新同步。",
-        "model_api_key_required": "Sub2API 模型发现需要 API Key。请先在站点创建一个 Key 后再重新同步。",
+        "api_key_required": "Sub2API 同步需要源密钥。请先在站点创建或粘贴源密钥后再重新同步。",
+        "model_api_key_required": "Sub2API 模型发现需要源密钥。请先在站点创建或粘贴源密钥后再重新同步。",
         "envelope_failed": "Sub2API 返回错误，请检查 Access Token、权限或站点状态。",
         "missing_data": "Sub2API 响应缺少必要数据，请检查站点兼容性或稍后重试。"
       }
