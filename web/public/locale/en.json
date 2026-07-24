@@ -44,14 +44,18 @@
     "supportedModels": "Supported Models"
   },
   "navbar": {
-    "home": "Home",
-    "site": "Site",
-    "channel": "Channel",
-    "group": "Group",
-    "key": "Key",
-    "model": "Price",
-    "log": "Log",
-    "setting": "Setting"
+    "home": "Overview",
+    "site": "Connect",
+    "channel": "Channels",
+    "group": "Routes",
+    "key": "Keys",
+    "model": "Pricing",
+    "log": "Traffic",
+    "setting": "Settings",
+    "connect": "Connect",
+    "route": "Routes",
+    "traffic": "Traffic",
+    "more": "More"
   },
   "toolbar": {
     "popover": {

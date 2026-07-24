@@ -150,3 +150,4 @@ Fuzzy / Regex **不**自动创建分组（命名不可判定，避免噪声）�
 | 2026-03-23 | 优化续4 | 抽出 useSiteAccountPanel hook；Panel 渲染层 ~197 行 |
 | 2026-03-23 | 产品+可靠性 | 设置 `relay_request_timeout` 非流式超时；运行态看板补渠道失败率 |
 | 2026-03-23 | 产品+可靠性2 | 失败率改为近 1h 滑动窗口；attempt 标注 timeout=first_token/request |
+| 2026-07-24 | IA 方案A | 主导航改为 概览/接入/路由/流量/设置；渠道与价格收入「更多」；首页工作台待办 |
