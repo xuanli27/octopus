@@ -72,6 +72,7 @@ import { SiteConnectStrip } from "./ConnectStrip";
 import { SiteEditDialog } from "./SiteEditDialog";
 import { BatchEditDialog } from "./BatchEditDialog";
 import { AccountEditDialog } from "./AccountEditDialog";
+import { useNavStore } from '@/components/modules/navbar';
 import {
   SyncResultDialog,
   formatSyncResultToast,
@@ -573,6 +574,7 @@ function estimateVisibleSiteCardHeight(item: VisibleSite, expanded: boolean) {
 }
 
 export function Site() {
+  const setActiveItem = useNavStore((s) => s.setActiveItem);
   const t = useTranslations();
   const tProxy = useTranslations('proxyPool');
   const locale = useSettingStore((state) => state.locale);
@@ -2181,6 +2183,10 @@ export function Site() {
         onGoFixKeys={(ctx) => {
           setSyncResultOpen(false);
           jumpToSiteChannelAccount(ctx.siteId, ctx.accountId);
+        }}
+        onGoRoutes={() => {
+          setSyncResultOpen(false);
+          setActiveItem('group');
         }}
       />
 
