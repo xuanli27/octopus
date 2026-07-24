@@ -870,7 +870,10 @@
       "cacheRead": "快取讀取",
       "cacheWrite": "快取寫入",
       "canceled": "已取消",
-      "timeout": "逾時"
+      "timeout": "逾時",
+      "copyReport": "複製排障報告",
+      "reportCopied": "排障報告已複製",
+      "reportCopyFailed": "複製失敗"
     },
     "filters": {
       "keywordPlaceholder": "搜尋模型、API Key 或內容",

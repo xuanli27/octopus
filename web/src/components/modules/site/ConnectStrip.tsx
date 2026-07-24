@@ -5,6 +5,7 @@ import { Cable, ChevronRight, Globe2, KeyRound, Waypoints } from 'lucide-react';
 import { useSiteList } from '@/api/endpoints/site';
 import { useSiteChannelList } from '@/api/endpoints/site-channel';
 import { useGroupList } from '@/api/endpoints/group';
+import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { useNavStore } from '@/components/modules/navbar';
 import { useChannelTabStore } from '@/components/modules/channel/tab-store';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ export function SiteConnectStrip() {
     const { data: sites } = useSiteList();
     const { data: siteCards } = useSiteChannelList({ includeHistory: false });
     const { data: groups } = useGroupList();
+    const { data: apiKeys } = useAPIKeyList();
     const setActiveItem = useNavStore((s) => s.setActiveItem);
     const setChannelTab = useChannelTabStore((s) => s.setActiveTab);
 
@@ -34,16 +36,19 @@ export function SiteConnectStrip() {
             }
         }
         const hasGroups = (groups?.length ?? 0) > 0;
+        const hasAccessKey = (apiKeys ?? []).some((k) => k.enabled !== false && !!k.api_key);
         const step1 = hasAccounts;
         const step2Done = hasAccounts && siteCards != null && missingKeys === 0;
         const step3 = hasGroups;
+        const step4 = hasAccessKey;
         let active = 1;
         if (!step1) active = 1;
         else if (!step2Done) active = 2;
         else if (!step3) active = 3;
+        else if (!step4) active = 4;
         else active = 4;
-        return { active, step1, step2Done, step3, missingKeys };
-    }, [sites, siteCards, groups]);
+        return { active, step1, step2Done, step3, step4, missingKeys };
+    }, [sites, siteCards, groups, apiKeys]);
 
     return (
         <section className="mb-4 rounded-3xl border border-border/70 bg-card/80 p-4 custom-shadow">
@@ -92,7 +97,7 @@ export function SiteConnectStrip() {
                         (step.id === 1 && progress.step1) ||
                         (step.id === 2 && progress.step2Done) ||
                         (step.id === 3 && progress.step3) ||
-                        (step.id === 4 && progress.step3);
+                        (step.id === 4 && progress.step4);
                     const current = step.id === progress.active;
                     return (
                         <div

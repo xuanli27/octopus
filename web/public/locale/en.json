@@ -870,7 +870,10 @@
       "cacheRead": "Cache Read",
       "cacheWrite": "Cache Write",
       "canceled": "Canceled",
-      "timeout": "Timeout"
+      "timeout": "Timeout",
+      "copyReport": "Copy report",
+      "reportCopied": "Report copied",
+      "reportCopyFailed": "Copy failed"
     },
     "filters": {
       "keywordPlaceholder": "Search model, API key or content",
