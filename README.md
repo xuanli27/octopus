@@ -254,14 +254,15 @@ The program automatically appends API paths based on channel type. You only need
 
 ---
 
-### 📁 Group Management
+### 📁 Group Management (Public Groups)
 
-Groups aggregate multiple channels into a unified external model name.
+**Public groups** aggregate multiple channels into a unified external model name.
 
 **Core Concepts:**
 
-- **Group name** is the model name exposed by the program
-- When calling the API, set the `model` parameter to the group name
+- **Public group name** is the model name exposed by the program
+- When calling the API, set the `model` parameter to the public group name
+- Do not confuse this with an **upstream group** on a relay site; see [docs/TERMINOLOGY.md](docs/TERMINOLOGY.md)
 
 **Load Balancing Modes:**
 
