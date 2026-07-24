@@ -33,10 +33,17 @@
 
 ### 🐳 Docker 运行
 
+镜像同时发布到 **Docker Hub** 与 **GHCR**（Debian 默认 / Alpine 后缀 `-alpine`）：
+
+| 源 | 示例 |
+|----|------|
+| Docker Hub（推荐，国内拉一般更方便） | `qianduzzz/octopus:latest` |
+| GHCR | `ghcr.io/xuanli27/octopus:latest` |
+
 直接运行
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 ghcr.io/xuanli27/octopus
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 qianduzzz/octopus:latest
 ```
 
 或者使用 docker compose 运行
@@ -45,6 +52,9 @@ docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 ghcr.io/xua
 wget https://raw.githubusercontent.com/xuanli27/octopus/refs/heads/dev/docker-compose.yml
 docker compose up -d
 ```
+
+> Alpine 镜像：`qianduzzz/octopus:latest-alpine` 或 `ghcr.io/xuanli27/octopus:latest-alpine`  
+> 固定版本：把 `latest` 换成 tag，如 `v0.9.1` / `v0.9.1-alpine`
 
 
 ### 📦 从 Release 下载
