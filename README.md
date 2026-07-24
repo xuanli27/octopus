@@ -33,10 +33,17 @@
 
 ### 🐳 Docker
 
+Images are published to both **Docker Hub** and **GHCR** (Debian by default; Alpine uses the `-alpine` suffix):
+
+| Registry | Example |
+|----------|---------|
+| Docker Hub (recommended) | `qianduzzz/octopus:latest` |
+| GHCR | `ghcr.io/xuanli27/octopus:latest` |
+
 Run directly:
 
 ```bash
-docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 ghcr.io/xuanli27/octopus
+docker run -d --name octopus -v /path/to/data:/app/data -p 8080:8080 qianduzzz/octopus:latest
 ```
 
 Or use docker compose:
@@ -45,6 +52,9 @@ Or use docker compose:
 wget https://raw.githubusercontent.com/xuanli27/octopus/refs/heads/dev/docker-compose.yml
 docker compose up -d
 ```
+
+> Alpine: `qianduzzz/octopus:latest-alpine` or `ghcr.io/xuanli27/octopus:latest-alpine`  
+> Pin a version by replacing `latest` with a tag such as `v0.9.1` / `v0.9.1-alpine`
 
 
 ### 📦 Download from Release
