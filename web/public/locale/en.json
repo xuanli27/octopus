@@ -565,6 +565,25 @@
       "pricingDesc": "Price table and multipliers",
       "connect": "Connect sites",
       "connectDesc": "Account sync and check-in"
+    },
+    "accessBundle": {
+      "title": "Access bundle",
+      "hint": "Copy Base URL, access key, and available models for clients.",
+      "baseUrl": "Service URL",
+      "useCurrent": "This page",
+      "apiKey": "Access key",
+      "pickKey": "Select key",
+      "noKey": "No enabled access key yet. Create one above first.",
+      "noModels": "No public groups (models) yet.",
+      "curl": "Sample curl",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "fields": {
+        "base": "Base URL",
+        "key": "Access key",
+        "models": "Models (public groups)"
+      }
     }
   },
   "group": {
@@ -869,6 +888,11 @@
       "next": "Next",
       "page": "Page {page}",
       "pagesRange": "Pages {from}–{to}"
+    },
+    "statusFilter": {
+      "all": "All",
+      "error": "Errors",
+      "success": "Success"
     }
   },
   "channel": {
