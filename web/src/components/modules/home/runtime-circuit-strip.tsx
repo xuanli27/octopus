@@ -41,7 +41,7 @@ function failRateClass(rate: number) {
 export function RuntimeCircuitStrip() {
     const setActiveItem = useNavStore((s) => s.setActiveItem);
     const setLogStatus = useToolbarViewOptionsStore((s) => s.setLogStatus);
-    const { data, isLoading, error } = useRuntimeOverview(true);
+    const { data, isLoading, error, refetch, isFetching } = useRuntimeOverview(true);
     const circuits = data?.circuits ?? [];
     const health = data?.channel_health ?? [];
     const open = data?.open_circuits ?? 0;
@@ -85,6 +85,13 @@ export function RuntimeCircuitStrip() {
                         高失败 {unhealthy}
                     </Badge>
                 ) : null}
+                <button
+                    type="button"
+                    onClick={() => void refetch()}
+                    className="ml-auto rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+                >
+                    {isFetching ? '刷新中…' : '刷新状态'}
+                </button>
             </div>
 
             {circuits.length > 0 ? (
