@@ -44,14 +44,18 @@
     "supportedModels": "支持的模型"
   },
   "navbar": {
-    "home": "主页",
-    "site": "站点",
+    "home": "概览",
+    "site": "接入",
     "channel": "渠道",
-    "group": "分组",
+    "group": "路由",
     "key": "密钥",
     "model": "价格",
-    "log": "日志",
-    "setting": "设置"
+    "log": "流量",
+    "setting": "设置",
+    "connect": "接入",
+    "route": "路由",
+    "traffic": "流量",
+    "more": "更多"
   },
   "toolbar": {
     "popover": {
