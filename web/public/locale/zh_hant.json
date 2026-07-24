@@ -536,6 +536,23 @@
       "modifiedAt": "修改時間",
       "refresh": "重新整理",
       "notConfigured": "WebDAV 未設定"
+    },
+    "colorTheme": {
+      "label": "色彩主題",
+      "hint": "經典 shadcn 風格色板，可與淺色/深色模式疊加使用。",
+      "names": {
+        "default": "預設綠",
+        "zinc": "Zinc",
+        "slate": "Slate",
+        "stone": "Stone",
+        "neutral": "Neutral",
+        "gray": "Gray",
+        "blue": "Blue",
+        "green": "Green",
+        "orange": "Orange",
+        "rose": "Rose",
+        "violet": "Violet"
+      }
     }
   },
   "group": {

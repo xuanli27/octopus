@@ -536,6 +536,23 @@
       "modifiedAt": "Modified",
       "refresh": "Refresh",
       "notConfigured": "WebDAV not configured"
+    },
+    "colorTheme": {
+      "label": "Color theme",
+      "hint": "Classic shadcn-style palettes. Works with light/dark mode.",
+      "names": {
+        "default": "Default green",
+        "zinc": "Zinc",
+        "slate": "Slate",
+        "stone": "Stone",
+        "neutral": "Neutral",
+        "gray": "Gray",
+        "blue": "Blue",
+        "green": "Green",
+        "orange": "Orange",
+        "rose": "Rose",
+        "violet": "Violet"
+      }
     }
   },
   "group": {
