@@ -2,6 +2,7 @@
 
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { SettingAppearance } from './Appearance';
+import { SettingQuickLinks } from './QuickLinks';
 import { SettingAPIKey } from './APIKey';
 import { SettingAccount } from './Account';
 import { SettingInfo } from './Info';
@@ -16,6 +17,7 @@ export function Setting() {
         <div className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-3xl">
             <PageWrapper className="columns-1 gap-4 pb-24 md:columns-2 md:pb-4 *:mb-4 *:min-w-0 *:break-inside-avoid">
                 <SettingAPIKey key="setting-apikey" />
+                <SettingQuickLinks key="setting-quick-links" />
                 <SettingInfo key="setting-info" />
                 <SettingAppearance key="setting-appearance" />
                 <SettingNetwork key="setting-network" />

@@ -4,6 +4,7 @@ import { useRuntimeOverview } from '@/api/endpoints/runtime';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Activity, ShieldAlert, TrendingDown } from 'lucide-react';
+import { useNavStore } from '@/components/modules/navbar';
 
 function stateLabel(state: string) {
     switch (state) {
@@ -37,6 +38,7 @@ function failRateClass(rate: number) {
 
 /** Compact runtime strip: circuits + channel fail rates (home page). */
 export function RuntimeCircuitStrip() {
+    const setActiveItem = useNavStore((s) => s.setActiveItem);
     const { data, isLoading, error } = useRuntimeOverview(true);
     const circuits = data?.circuits ?? [];
     const health = data?.channel_health ?? [];
@@ -121,9 +123,11 @@ export function RuntimeCircuitStrip() {
                     </div>
                     <div className="max-h-36 space-y-1.5 overflow-y-auto">
                         {health.slice(0, 10).map((h) => (
-                            <div
+                            <button
+                                type="button"
                                 key={h.channel_id}
-                                className="flex items-center justify-between gap-2 rounded-xl border border-border/50 bg-background/60 px-2.5 py-1.5 text-xs"
+                                onClick={() => setActiveItem('log')}
+                                className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/50 bg-background/60 px-2.5 py-1.5 text-left text-xs transition hover:bg-muted/40"
                             >
                                 <div className="min-w-0">
                                     <div className="truncate font-medium text-foreground">
@@ -139,7 +143,7 @@ export function RuntimeCircuitStrip() {
                                 <span className={cn('shrink-0 tabular-nums text-sm font-semibold', failRateClass(h.fail_rate))}>
                                     {h.fail_rate.toFixed(0)}%
                                 </span>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </div>
