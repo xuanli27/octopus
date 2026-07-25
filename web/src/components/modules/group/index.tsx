@@ -5,8 +5,9 @@ import { BookMarked, FolderTree, Plus, Sparkles, Waypoints } from 'lucide-react'
 import { useTranslations } from 'next-intl';
 import { GroupCard } from './Card';
 import { PublicModelDialog } from './PublicModelDialog';
-import { usePublicModelPending } from '@/api/endpoints/public-model';
-import { useGroupList } from '@/api/endpoints/group';
+import { usePublicModelPending, useSeedPublicModels } from '@/api/endpoints/public-model';
+import { useGroupList, useRunGroupAutoGroup } from '@/api/endpoints/group';
+import { toast } from '@/components/common/Toast';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,18 @@ export function Group() {
     const [dictOpen, setDictOpen] = useState(false);
     const { data: pendingModels } = usePublicModelPending(true);
     const pendingCount = pendingModels?.length ?? 0;
+    const seedMut = useSeedPublicModels();
+    const runAutoGroup = useRunGroupAutoGroup();
+    const seedAndApply = async () => {
+        try {
+            const r = await seedMut.mutateAsync();
+            await runAutoGroup.mutateAsync({});
+            toast.success(`预置 ${r.created} 个规范名，并已重新自动分组`);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : '预置/入组失败';
+            toast.error(msg);
+        }
+    };
     const [family, setFamily] = useState<ModelFamilyId>('all');
 
     const sortedGroups = useMemo(() => {
@@ -105,6 +118,16 @@ export function Group() {
                         <Button type="button" size="sm" variant="outline" className="h-8 rounded-2xl" onClick={() => setAutoGroupOpen(true)}>
                             <Sparkles className="size-3.5" />
                             自动分组
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            className="h-8 rounded-2xl"
+                            disabled={seedMut.isPending || runAutoGroup.isPending}
+                            onClick={() => void seedAndApply()}
+                        >
+                            {seedMut.isPending || runAutoGroup.isPending ? '处理中…' : '预置+入组'}
                         </Button>
                         <Button type="button" size="sm" variant="outline" className="h-8 rounded-2xl" onClick={() => setDictOpen(true)}>
                             <BookMarked className="size-3.5" />

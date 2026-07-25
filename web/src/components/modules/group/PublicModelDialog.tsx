@@ -24,6 +24,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/components/common/Toast';
+import { useRunGroupAutoGroup } from '@/api/endpoints/group';
 import { cn } from '@/lib/utils';
 import { inferModelFamily } from '@/lib/model-family';
 
@@ -39,14 +40,35 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
     const deleteMut = useDeletePublicModel();
     const seedMut = useSeedPublicModels();
     const assignMut = useAssignPublicModelAlias();
+    const runAutoGroup = useRunGroupAutoGroup();
 
     const [tab, setTab] = useState<'dict' | 'pending'>('dict');
     const [name, setName] = useState('');
     const [aliases, setAliases] = useState('');
     const [note, setNote] = useState('');
     const [editing, setEditing] = useState<PublicModel | null>(null);
+    const [dictQuery, setDictQuery] = useState('');
 
-    const sorted = useMemo(() => [...(rows ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
+    const sorted = useMemo(() => {
+        const q = dictQuery.trim().toLowerCase();
+        const list = [...(rows ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+        if (!q) return list;
+        return list.filter((m) => {
+            if (m.name.toLowerCase().includes(q)) return true;
+            if ((m.note || '').toLowerCase().includes(q)) return true;
+            return (m.aliases ?? []).some((a) => a.alias.toLowerCase().includes(q));
+        });
+    }, [rows, dictQuery]);
+
+    const applyToGroups = () => {
+        runAutoGroup.mutate(
+            {},
+            {
+                onSuccess: () => toast.success('已按字典/归一化重新自动分组'),
+                onError: (e) => toast.error(e.message || '自动分组失败'),
+            },
+        );
+    };
 
     function resetForm() {
         setName('');
@@ -172,7 +194,7 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="ml-auto h-8 rounded-2xl"
+                        className="h-8 rounded-2xl"
                         disabled={seedMut.isPending}
                         onClick={() =>
                             seedMut.mutate(undefined, {
@@ -184,7 +206,25 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
                         <Sparkles className="size-3.5" />
                         预置常用
                     </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        className="ml-auto h-8 rounded-2xl"
+                        disabled={runAutoGroup.isPending}
+                        onClick={applyToGroups}
+                    >
+                        {runAutoGroup.isPending ? '入组中…' : '应用字典到分组'}
+                    </Button>
                 </div>
+
+                {tab === 'dict' ? (
+                    <Input
+                        value={dictQuery}
+                        onChange={(e) => setDictQuery(e.target.value)}
+                        placeholder="搜索规范名 / 别名…"
+                        className="h-9 rounded-2xl"
+                    />
+                ) : null}
 
                 {tab === 'dict' ? (
                     <div className="grid min-h-0 flex-1 gap-4 overflow-hidden md:grid-cols-2">
@@ -289,6 +329,37 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
                     </div>
                 ) : (
                     <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                        {(pending ?? []).some((p) => !!p.suggested_public) ? (
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2">
+                                <div className="text-[11px] text-muted-foreground">
+                                    可将「归一化建议」一键写入字典（例如 gpt-4o-2024-08-06 → gpt-4o）
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="h-7 rounded-xl text-[11px]"
+                                    disabled={assignMut.isPending}
+                                    onClick={async () => {
+                                        const items = (pending ?? []).filter((p) => p.suggested_public);
+                                        let ok = 0;
+                                        for (const item of items) {
+                                            try {
+                                                await assignMut.mutateAsync({
+                                                    public: item.suggested_public!,
+                                                    alias: item.upstream,
+                                                });
+                                                ok += 1;
+                                            } catch {
+                                                // continue
+                                            }
+                                        }
+                                        toast.success(`已接纳 ${ok}/${items.length} 条建议`);
+                                    }}
+                                >
+                                    一键接纳建议
+                                </Button>
+                            </div>
+                        ) : null}
                         {pendingLoading ? (
                             <div className="text-xs text-muted-foreground">扫描渠道模型中…</div>
                         ) : (pending?.length ?? 0) === 0 ? (
