@@ -23,6 +23,14 @@ export type RuntimeChannelHealth = {
     window?: string;
 };
 
+export type RuntimeStickySession = {
+    api_key_id: number;
+    request_model: string;
+    channel_id: number;
+    channel_key_id: number;
+    age_ms: number;
+};
+
 export type RuntimeOverview = {
     open_circuits: number;
     half_open_circuits: number;
@@ -30,6 +38,8 @@ export type RuntimeOverview = {
     channel_health?: RuntimeChannelHealth[];
     unhealthy_count?: number;
     health_window?: string;
+    sticky_sessions?: RuntimeStickySession[];
+    sticky_count?: number;
 };
 
 export function useRuntimeOverview(enabled = true, channelId?: number) {

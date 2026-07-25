@@ -302,6 +302,24 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                                     : '—'}
                                             </div>
                                         </div>
+                                        <div className="rounded-xl border border-border/60 bg-card/60 px-3 py-2 sm:col-span-3">
+                                            <div>粘性会话</div>
+                                            <div className="mt-1 text-sm font-semibold text-foreground">
+                                                {runtime?.sticky_count ?? 0}
+                                                <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+                                                    编辑/启停渠道后会清空
+                                                </span>
+                                            </div>
+                                            {(runtime?.sticky_sessions?.length ?? 0) > 0 ? (
+                                                <div className="mt-1 space-y-1">
+                                                    {runtime!.sticky_sessions!.slice(0, 3).map((s) => (
+                                                        <div key={`${s.api_key_id}-${s.request_model}-${s.channel_key_id}`} className="text-[11px] text-muted-foreground">
+                                                            key#{s.api_key_id} · {s.request_model} · {Math.round(s.age_ms / 1000)}s前
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     {(runtime?.circuits?.length ?? 0) > 0 ? (
                                         <div className="mt-2 space-y-1">

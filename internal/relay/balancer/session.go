@@ -2,6 +2,7 @@ package balancer
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -62,4 +63,46 @@ func resetStickyByChannel(channelID int) {
 		}
 		return true
 	})
+}
+
+
+// StickySnapshot is a read-only sticky-session view for runtime dashboards.
+type StickySnapshot struct {
+	APIKeyID     int       `json:"api_key_id"`
+	RequestModel string    `json:"request_model"`
+	ChannelID    int       `json:"channel_id"`
+	ChannelKeyID int       `json:"channel_key_id"`
+	AgeMS        int64     `json:"age_ms"`
+}
+
+// ListStickySnapshots returns current sticky sessions, optionally filtered by channelID (0=all).
+func ListStickySnapshots(channelID int) []StickySnapshot {
+	out := make([]StickySnapshot, 0)
+	now := time.Now()
+	globalSession.Range(func(key, value any) bool {
+		entry, ok := value.(*SessionEntry)
+		if !ok || entry == nil {
+			return true
+		}
+		if channelID > 0 && entry.ChannelID != channelID {
+			return true
+		}
+		k, _ := key.(string)
+		// key format: apiKeyID:requestModel
+		apiKeyID := 0
+		requestModel := ""
+		if parts := strings.SplitN(k, ":", 2); len(parts) == 2 {
+			fmt.Sscanf(parts[0], "%d", &apiKeyID)
+			requestModel = parts[1]
+		}
+		out = append(out, StickySnapshot{
+			APIKeyID:     apiKeyID,
+			RequestModel: requestModel,
+			ChannelID:    entry.ChannelID,
+			ChannelKeyID: entry.ChannelKeyID,
+			AgeMS:        now.Sub(entry.Timestamp).Milliseconds(),
+		})
+		return true
+	})
+	return out
 }

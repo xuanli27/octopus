@@ -47,6 +47,7 @@ export function RuntimeCircuitStrip() {
     const open = data?.open_circuits ?? 0;
     const half = data?.half_open_circuits ?? 0;
     const unhealthy = data?.unhealthy_count ?? 0;
+    const stickyCount = data?.sticky_count ?? 0;
 
     if (isLoading && !data) {
         return null;
@@ -83,6 +84,11 @@ export function RuntimeCircuitStrip() {
                 {unhealthy > 0 ? (
                     <Badge variant="outline" className="rounded-full border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200">
                         高失败 {unhealthy}
+                    </Badge>
+                ) : null}
+                {stickyCount > 0 ? (
+                    <Badge variant="outline" className="rounded-full border-border/70 bg-muted/40 text-muted-foreground">
+                        粘性 {stickyCount}
                     </Badge>
                 ) : null}
                 <button

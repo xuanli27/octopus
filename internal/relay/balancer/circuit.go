@@ -2,6 +2,7 @@ package balancer
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -44,11 +45,22 @@ func circuitKey(channelID, keyID int, modelName string) string {
 }
 
 func resetCircuitBreakerByChannel(channelID int) {
-	prefix := fmt.Sprintf("%d:", channelID)
+	// Match exact channel ID segment (key format channelID:keyID:model...).
+	// Prefer splitting on first ":" so we never confuse 1 with 10 via naive prefixes.
 	globalBreaker.Range(func(key, _ any) bool {
-		if k, ok := key.(string); ok && strings.HasPrefix(k, prefix) {
-			globalBreaker.Delete(k)
+		k, ok := key.(string)
+		if !ok {
+			return true
 		}
+		idPart, _, ok := strings.Cut(k, ":")
+		if !ok {
+			return true
+		}
+		id, err := strconv.Atoi(idPart)
+		if err != nil || id != channelID {
+			return true
+		}
+		globalBreaker.Delete(k)
 		return true
 	})
 }

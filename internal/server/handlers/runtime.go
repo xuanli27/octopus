@@ -42,6 +42,14 @@ type runtimeChannelHealth struct {
 	Window         string  `json:"window"` // e.g. "1h"
 }
 
+type runtimeStickyView struct {
+	APIKeyID     int    `json:"api_key_id"`
+	RequestModel string `json:"request_model"`
+	ChannelID    int    `json:"channel_id"`
+	ChannelKeyID int    `json:"channel_key_id"`
+	AgeMS        int64  `json:"age_ms"`
+}
+
 type runtimeOverview struct {
 	OpenCircuits     int                    `json:"open_circuits"`
 	HalfOpenCircuits int                    `json:"half_open_circuits"`
@@ -49,10 +57,29 @@ type runtimeOverview struct {
 	ChannelHealth    []runtimeChannelHealth `json:"channel_health"`
 	UnhealthyCount   int                    `json:"unhealthy_count"`
 	HealthWindow     string                 `json:"health_window"`
+	StickySessions   []runtimeStickyView    `json:"sticky_sessions"`
+	StickyCount      int                    `json:"sticky_count"`
 }
 
 func getRuntimeOverview(c *gin.Context) {
 	snaps := balancer.ListCircuitSnapshots()
+	focusChannelID := 0
+	if raw := c.Query("channel_id"); raw != "" {
+		if id, err := strconv.Atoi(raw); err == nil && id > 0 {
+			focusChannelID = id
+		}
+	}
+	stickySnaps := balancer.ListStickySnapshots(focusChannelID)
+	stickyViews := make([]runtimeStickyView, 0, len(stickySnaps))
+	for _, s := range stickySnaps {
+		stickyViews = append(stickyViews, runtimeStickyView{
+			APIKeyID:     s.APIKeyID,
+			RequestModel: s.RequestModel,
+			ChannelID:    s.ChannelID,
+			ChannelKeyID: s.ChannelKeyID,
+			AgeMS:        s.AgeMS,
+		})
+	}
 	views := make([]runtimeCircuitView, 0, len(snaps))
 	open, half := 0, 0
 	for _, s := range snaps {
@@ -191,6 +218,7 @@ func getRuntimeOverview(c *gin.Context) {
 					halfF++
 				}
 			}
+			// sticky already filtered by focusChannelID
 			resp.Success(c, runtimeOverview{
 				OpenCircuits:     openF,
 				HalfOpenCircuits: halfF,
@@ -198,6 +226,8 @@ func getRuntimeOverview(c *gin.Context) {
 				ChannelHealth:    filteredHealth,
 				UnhealthyCount:   len(filteredHealth),
 				HealthWindow:     windowLabel,
+				StickySessions:   stickyViews,
+				StickyCount:      len(stickyViews),
 			})
 			return
 		}
@@ -210,5 +240,7 @@ func getRuntimeOverview(c *gin.Context) {
 		ChannelHealth:    health,
 		UnhealthyCount:   unhealthy,
 		HealthWindow:     windowLabel,
+		StickySessions:   stickyViews,
+		StickyCount:      len(stickyViews),
 	})
 }
