@@ -14,11 +14,13 @@ func TestNormalizePublicModelName(t *testing.T) {
 		{"gpt-4o-2024-08-06-preview", "gpt-4o"},
 		{"openai/gpt-4o", "gpt-4o"},
 		{"openai/gpt-4o-2024-08-06", "gpt-4o"},
-		{"anthropic/claude-3-5-sonnet-20241022", "claude-3-5-sonnet"},
+		{"anthropic/claude-3-5-sonnet-20241022", "claude-3.5-sonnet"},
 		{"OpenAI:gpt-4o", "gpt-4o"},
 		{"unknown-vendor/foo-bar", "unknown-vendor/foo-bar"}, // unknown prefix kept
 		{"gpt-4o", "gpt-4o"},
-		{"claude-3-5-sonnet", "claude-3-5-sonnet"},
+		{"claude-3-5-sonnet", "claude-3.5-sonnet"},
+		{"claude-3.5-sonnet", "claude-3.5-sonnet"},
+		{"gpt-4-1-mini", "gpt-4.1-mini"},
 	}
 	for _, tc := range cases {
 		if got := NormalizePublicModelName(tc.in); got != tc.want {

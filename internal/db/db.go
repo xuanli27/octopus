@@ -78,6 +78,8 @@ func InitDB(dbType, dsn string, debug bool) error {
 		&model.SiteModel{},
 		&model.SiteChannelBinding{},
 		&model.Group{},
+		&model.PublicModel{},
+		&model.PublicModelAlias{},
 		&model.GroupItem{},
 		&model.GroupPreset{},
 		&model.LLMInfo{},

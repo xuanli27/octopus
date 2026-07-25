@@ -43,7 +43,25 @@ func NormalizePublicModelName(name string) string {
 	}
 	s = stripProviderPrefix(s)
 	s = stripTrailingDateSuffix(s)
+	s = normalizeVersionDots(s)
 	return strings.TrimSpace(s)
+}
+
+// normalizeVersionDots turns single-digit major-minor segments into dotted form:
+// claude-3-5-sonnet → claude-3.5-sonnet, gpt-4-1-mini → gpt-4.1-mini.
+// Only matches -N-M- or -N-M$ where N and M are single digits to avoid dates.
+var reVersionDash = regexp.MustCompile(`(?i)(^|-)(\d)-(\d)(-|$)`)
+
+func normalizeVersionDots(s string) string {
+	// Apply repeatedly for rare double occurrences.
+	for i := 0; i < 3; i++ {
+		next := reVersionDash.ReplaceAllString(s, `${1}${2}.${3}${4}`)
+		if next == s {
+			break
+		}
+		s = next
+	}
+	return s
 }
 
 // PublicModelNamesMatch reports whether a channel model should exact-match a
