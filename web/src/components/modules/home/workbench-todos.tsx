@@ -13,6 +13,7 @@ import { useRuntimeOverview } from '@/api/endpoints/runtime';
 import { useGroupList } from '@/api/endpoints/group';
 import { useNavStore } from '@/components/modules/navbar';
 import { useChannelTabStore } from '@/components/modules/channel/tab-store';
+import { useToolbarViewOptionsStore } from '@/components/modules/toolbar/view-options-store';
 import { cn } from '@/lib/utils';
 
 type TodoItem = {
@@ -27,6 +28,7 @@ type TodoItem = {
 export function WorkbenchTodos() {
     const setActiveItem = useNavStore((s) => s.setActiveItem);
     const setChannelTab = useChannelTabStore((s) => s.setActiveTab);
+    const setLogStatus = useToolbarViewOptionsStore((s) => s.setLogStatus);
     const { data: siteCards } = useSiteChannelList({ includeHistory: false });
     const { data: runtime } = useRuntimeOverview(true);
     const { data: groups } = useGroupList();
@@ -67,10 +69,13 @@ export function WorkbenchTodos() {
             items.push({
                 id: 'circuits',
                 title: `${open} 路熔断中`,
-                detail: '可在运行态查看冷却，或检查上游与超时配置',
+                detail: '可在运行态查看冷却，或到流量查看近期失败',
                 tone: 'red',
                 icon: ShieldAlert,
-                onClick: () => setActiveItem('home'),
+                onClick: () => {
+                    setLogStatus('error');
+                    setActiveItem('log');
+                },
             });
         } else if (unhealthy > 0) {
             items.push({
@@ -79,7 +84,10 @@ export function WorkbenchTodos() {
                 detail: '建议查看日志与渠道健康',
                 tone: 'amber',
                 icon: AlertTriangle,
-                onClick: () => setActiveItem('log'),
+                onClick: () => {
+                    setLogStatus('error');
+                    setActiveItem('log');
+                },
             });
         }
 
@@ -96,7 +104,7 @@ export function WorkbenchTodos() {
         }
 
         return items.slice(0, 4);
-    }, [siteCards, runtime, groups, setActiveItem, setChannelTab]);
+    }, [siteCards, runtime, groups, setActiveItem, setChannelTab, setLogStatus]);
 
     if (todos.length === 0) {
         return (
@@ -123,7 +131,10 @@ export function WorkbenchTodos() {
                     </button>
                     <button
                         type="button"
-                        onClick={() => setActiveItem('log')}
+                        onClick={() => {
+                            setLogStatus('error');
+                            setActiveItem('log');
+                        }}
                         className="rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/60"
                     >
                         看流量

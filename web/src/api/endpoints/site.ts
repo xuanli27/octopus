@@ -292,6 +292,10 @@ function invalidateSiteQueries(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["channels", "list"] });
   queryClient.invalidateQueries({ queryKey: ["models", "channel"] });
   queryClient.invalidateQueries({ queryKey: ["proxy-pool"] });
+  queryClient.invalidateQueries({ queryKey: ["groups", "list"] });
+  // Sync/projection may rebuild channels; refresh runtime health after server reset.
+  queryClient.invalidateQueries({ queryKey: ["runtime"] });
+  queryClient.invalidateQueries({ queryKey: ["group-health"] });
 }
 
 function getAuthHeader() {

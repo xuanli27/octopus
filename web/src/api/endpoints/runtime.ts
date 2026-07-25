@@ -23,6 +23,14 @@ export type RuntimeChannelHealth = {
     window?: string;
 };
 
+export type RuntimeStickySession = {
+    api_key_id: number;
+    request_model: string;
+    channel_id: number;
+    channel_key_id: number;
+    age_ms: number;
+};
+
 export type RuntimeOverview = {
     open_circuits: number;
     half_open_circuits: number;
@@ -30,12 +38,19 @@ export type RuntimeOverview = {
     channel_health?: RuntimeChannelHealth[];
     unhealthy_count?: number;
     health_window?: string;
+    sticky_sessions?: RuntimeStickySession[];
+    sticky_count?: number;
 };
 
-export function useRuntimeOverview(enabled = true) {
+export function useRuntimeOverview(enabled = true, channelId?: number) {
     return useQuery({
-        queryKey: ['runtime', 'overview'],
-        queryFn: async () => apiClient.get<RuntimeOverview>('/api/v1/runtime/overview'),
+        queryKey: channelId ? ['runtime', 'overview', channelId] : ['runtime', 'overview'],
+        queryFn: async () =>
+            apiClient.get<RuntimeOverview>(
+                channelId
+                    ? `/api/v1/runtime/overview?channel_id=${channelId}`
+                    : '/api/v1/runtime/overview',
+            ),
         enabled,
         refetchInterval: 15000,
     });

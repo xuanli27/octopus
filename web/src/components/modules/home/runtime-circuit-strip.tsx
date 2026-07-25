@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Activity, ShieldAlert, TrendingDown } from 'lucide-react';
 import { useNavStore } from '@/components/modules/navbar';
+import { useToolbarViewOptionsStore } from '@/components/modules/toolbar/view-options-store';
 
 function stateLabel(state: string) {
     switch (state) {
@@ -39,12 +40,14 @@ function failRateClass(rate: number) {
 /** Compact runtime strip: circuits + channel fail rates (home page). */
 export function RuntimeCircuitStrip() {
     const setActiveItem = useNavStore((s) => s.setActiveItem);
-    const { data, isLoading, error } = useRuntimeOverview(true);
+    const setLogStatus = useToolbarViewOptionsStore((s) => s.setLogStatus);
+    const { data, isLoading, error, refetch, isFetching } = useRuntimeOverview(true);
     const circuits = data?.circuits ?? [];
     const health = data?.channel_health ?? [];
     const open = data?.open_circuits ?? 0;
     const half = data?.half_open_circuits ?? 0;
     const unhealthy = data?.unhealthy_count ?? 0;
+    const stickyCount = data?.sticky_count ?? 0;
 
     if (isLoading && !data) {
         return null;
@@ -58,7 +61,7 @@ export function RuntimeCircuitStrip() {
         return (
             <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card/60 px-3 py-2 text-xs text-muted-foreground">
                 <Activity className="size-3.5" />
-                运行态：当前无熔断，也无高失败率渠道
+                运行态：当前无熔断/高失败率渠道（编辑渠道后会自动刷新）
             </div>
         );
     }
@@ -83,6 +86,18 @@ export function RuntimeCircuitStrip() {
                         高失败 {unhealthy}
                     </Badge>
                 ) : null}
+                {stickyCount > 0 ? (
+                    <Badge variant="outline" className="rounded-full border-border/70 bg-muted/40 text-muted-foreground">
+                        粘性 {stickyCount}
+                    </Badge>
+                ) : null}
+                <button
+                    type="button"
+                    onClick={() => void refetch()}
+                    className="ml-auto rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+                >
+                    {isFetching ? '刷新中…' : '刷新状态'}
+                </button>
             </div>
 
             {circuits.length > 0 ? (
@@ -126,7 +141,10 @@ export function RuntimeCircuitStrip() {
                             <button
                                 type="button"
                                 key={h.channel_id}
-                                onClick={() => setActiveItem('log')}
+                                onClick={() => {
+                                    setLogStatus('error');
+                                    setActiveItem('log');
+                                }}
                                 className="flex w-full items-center justify-between gap-2 rounded-xl border border-border/50 bg-background/60 px-2.5 py-1.5 text-left text-xs transition hover:bg-muted/40"
                             >
                                 <div className="min-w-0">

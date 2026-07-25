@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound, CircleOff, Link, Globe } from 'lucide-react';
+import { Copy, Clock, Zap, AlertCircle, ArrowDownToLine, ArrowUpFromLine, DollarSign, ArrowRight, ArrowDown, Send, MessageSquare, Loader2, RotateCw, ChevronDown, ChevronUp, Pin, KeyRound, CircleOff, Link, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'motion/react';
 import JsonView from '@uiw/react-json-view';
@@ -569,6 +569,34 @@ function AttemptDisableButton({
     );
 }
 
+
+function buildLogDiagnosticReport(log: RelayLog): string {
+    const lines: string[] = [];
+    lines.push(`# Octopus log #${log.id}`);
+    lines.push(`time: ${new Date((log.time || 0) * 1000).toISOString()}`);
+    lines.push(`model: ${log.request_model_name} -> ${log.actual_model_name || '-'}`);
+    lines.push(`channel: ${log.channel_name || log.channel} (#${log.channel})`);
+    if (log.request_api_key_name) lines.push(`api_key: ${log.request_api_key_name}`);
+    if (log.client_ip) lines.push(`client_ip: ${log.client_ip}`);
+    lines.push(`tokens: in=${log.input_tokens} out=${log.output_tokens} cost=${log.cost}`);
+    lines.push(`latency: ftut=${log.ftut}ms total=${log.use_time}ms`);
+    if (log.error) lines.push(`error: ${log.error}`);
+    const attempts = log.attempts ?? [];
+    if (attempts.length > 0) {
+        lines.push('');
+        lines.push(`attempts (${attempts.length}):`);
+        attempts.forEach((a, i) => {
+            lines.push(
+                `  ${i + 1}. #${a.attempt_num} ${a.status} ${a.channel_name}/${a.model_name} ${a.duration}ms` +
+                (a.sticky ? ' sticky' : '') +
+                (a.reason ? ` | reason=${a.reason}` : '') +
+                (a.msg ? ` | msg=${a.msg}` : ''),
+            );
+        });
+    }
+    return lines.join('\n');
+}
+
 export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogSiteActionTargets | null }) {
     const t = useTranslations('log.card');
     const displayActualModelName = useMemo(
@@ -584,6 +612,13 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
     const disableMutation = useUpdateSiteChannelModelDisabled();
 
     const hasError = !!log.error;
+    const lastAttempt = log.attempts && log.attempts.length > 0 ? log.attempts[log.attempts.length - 1] : null;
+    const outcomeMeta = getAttemptStatusMeta(
+        hasError ? (lastAttempt?.status ?? 'failed') : 'success',
+        t,
+        hasError ? (lastAttempt?.msg || log.error) : undefined,
+        lastAttempt?.reason,
+    );
     const hasAttempts = (log.attempts?.length ?? 0) > 0;
     const hasMultipleAttempts = (log.attempts?.length ?? 0) > 1;
     const [isDiagnosticExpanded, setIsDiagnosticExpanded] = useState(false);
@@ -696,6 +731,9 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                         <div className="min-w-0 flex flex-col gap-3">
                             <div className="flex items-start gap-3 min-w-0">
                                 <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                                    <Badge className={cn('h-5 shrink-0 px-1.5 text-[10px] font-bold uppercase shadow-none border-0', outcomeMeta.badgeClassName)}>
+                                        {outcomeMeta.label}
+                                    </Badge>
                                     <span className="font-semibold text-card-foreground truncate" title={log.request_model_name}>
                                         {log.request_model_name}
                                     </span>
@@ -851,6 +889,21 @@ export function LogCard({ log, siteTargets }: { log: RelayLog; siteTargets: LogS
                                                         {log.total_attempts || log.attempts!.length} {t('attempts')}
                                                     </Badge>
                                                 ) : null}
+                                                <button
+                                                    type="button"
+                                                    className="rounded-md p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                                    title={t('copyReport')}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const report = buildLogDiagnosticReport(log);
+                                                        void navigator.clipboard.writeText(report).then(
+                                                            () => toast.success(t('reportCopied')),
+                                                            () => toast.error(t('reportCopyFailed')),
+                                                        );
+                                                    }}
+                                                >
+                                                    <Copy className="size-4" />
+                                                </button>
                                                 {isDiagnosticExpanded ? (
                                                     <ChevronUp className="size-4 text-muted-foreground" />
                                                 ) : (

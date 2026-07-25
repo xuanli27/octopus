@@ -220,13 +220,15 @@ type Props = {
     context: SyncResultDialogContext | null;
     onClose: () => void;
     onGoFixKeys?: (ctx: SyncResultDialogContext) => void;
+    onGoRoutes?: (ctx: SyncResultDialogContext) => void;
 };
 
-export function SyncResultDialog({ open, context, onClose, onGoFixKeys }: Props) {
+export function SyncResultDialog({ open, context, onClose, onGoFixKeys, onGoRoutes }: Props) {
     const groups = context?.result.group_results ?? [];
     const counts = useMemo(() => summarizeGroups(groups), [groups]);
     const tone = overallTone(context?.result.status ?? '');
     const needsKeyAction = counts.missingKey > 0;
+    const canOfferRoutes = !needsKeyAction && (context?.result.channel_count ?? 0) > 0;
 
     const sortedGroups = useMemo(() => {
         const rank = (group: GroupResult) => {
@@ -369,6 +371,15 @@ export function SyncResultDialog({ open, context, onClose, onGoFixKeys }: Props)
                             >
                                 <ExternalLink className="size-4" />
                                 {needsKeyAction ? '去补齐源密钥' : '查看站点渠道'}
+                            </Button>
+                        ) : null}
+                        {context && canOfferRoutes && onGoRoutes ? (
+                            <Button
+                                type="button"
+                                className="rounded-2xl"
+                                onClick={() => onGoRoutes(context)}
+                            >
+                                生成/查看对外分组
                             </Button>
                         ) : null}
                     </div>

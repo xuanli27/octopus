@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,6 +42,14 @@ type runtimeChannelHealth struct {
 	Window         string  `json:"window"` // e.g. "1h"
 }
 
+type runtimeStickyView struct {
+	APIKeyID     int    `json:"api_key_id"`
+	RequestModel string `json:"request_model"`
+	ChannelID    int    `json:"channel_id"`
+	ChannelKeyID int    `json:"channel_key_id"`
+	AgeMS        int64  `json:"age_ms"`
+}
+
 type runtimeOverview struct {
 	OpenCircuits     int                    `json:"open_circuits"`
 	HalfOpenCircuits int                    `json:"half_open_circuits"`
@@ -48,10 +57,29 @@ type runtimeOverview struct {
 	ChannelHealth    []runtimeChannelHealth `json:"channel_health"`
 	UnhealthyCount   int                    `json:"unhealthy_count"`
 	HealthWindow     string                 `json:"health_window"`
+	StickySessions   []runtimeStickyView    `json:"sticky_sessions"`
+	StickyCount      int                    `json:"sticky_count"`
 }
 
 func getRuntimeOverview(c *gin.Context) {
 	snaps := balancer.ListCircuitSnapshots()
+	focusChannelID := 0
+	if raw := c.Query("channel_id"); raw != "" {
+		if id, err := strconv.Atoi(raw); err == nil && id > 0 {
+			focusChannelID = id
+		}
+	}
+	stickySnaps := balancer.ListStickySnapshots(focusChannelID)
+	stickyViews := make([]runtimeStickyView, 0, len(stickySnaps))
+	for _, s := range stickySnaps {
+		stickyViews = append(stickyViews, runtimeStickyView{
+			APIKeyID:     s.APIKeyID,
+			RequestModel: s.RequestModel,
+			ChannelID:    s.ChannelID,
+			ChannelKeyID: s.ChannelKeyID,
+			AgeMS:        s.AgeMS,
+		})
+	}
 	views := make([]runtimeCircuitView, 0, len(snaps))
 	open, half := 0, 0
 	for _, s := range snaps {
@@ -139,6 +167,72 @@ func getRuntimeOverview(c *gin.Context) {
 		health = health[:20]
 	}
 
+	// Optional focus: /overview?channel_id=123
+	if raw := c.Query("channel_id"); raw != "" {
+		if id, err := strconv.Atoi(raw); err == nil && id > 0 {
+			filteredViews := make([]runtimeCircuitView, 0)
+			for _, v := range views {
+				if v.ChannelID == id {
+					filteredViews = append(filteredViews, v)
+				}
+			}
+			// health list only keeps "interesting" rows; also attach a zero-row for focus if missing
+			filteredHealth := make([]runtimeChannelHealth, 0)
+			foundHealth := false
+			for _, h := range health {
+				if h.ChannelID == id {
+					filteredHealth = append(filteredHealth, h)
+					foundHealth = true
+				}
+			}
+			if !foundHealth {
+				// Build from raw recent snapshot even if previously filtered out.
+				for _, r := range recent {
+					if r.ChannelID != id {
+						continue
+					}
+					name := ""
+					enabled := true
+					if ch, err := op.ChannelGet(r.ChannelID, c.Request.Context()); err == nil && ch != nil {
+						name = ch.Name
+						enabled = ch.Enabled
+					}
+					filteredHealth = append(filteredHealth, runtimeChannelHealth{
+						ChannelID:      r.ChannelID,
+						ChannelName:    name,
+						RequestSuccess: r.RequestSuccess,
+						RequestFailed:  r.RequestFailed,
+						TotalRequests:  r.TotalRequests,
+						FailRate:       r.FailRate,
+						Enabled:        enabled,
+						Window:         windowLabel,
+					})
+				}
+			}
+			openF, halfF := 0, 0
+			for _, v := range filteredViews {
+				switch v.State {
+				case "open":
+					openF++
+				case "half_open":
+					halfF++
+				}
+			}
+			// sticky already filtered by focusChannelID
+			resp.Success(c, runtimeOverview{
+				OpenCircuits:     openF,
+				HalfOpenCircuits: halfF,
+				Circuits:         filteredViews,
+				ChannelHealth:    filteredHealth,
+				UnhealthyCount:   len(filteredHealth),
+				HealthWindow:     windowLabel,
+				StickySessions:   stickyViews,
+				StickyCount:      len(stickyViews),
+			})
+			return
+		}
+	}
+
 	resp.Success(c, runtimeOverview{
 		OpenCircuits:     open,
 		HalfOpenCircuits: half,
@@ -146,5 +240,7 @@ func getRuntimeOverview(c *gin.Context) {
 		ChannelHealth:    health,
 		UnhealthyCount:   unhealthy,
 		HealthWindow:     windowLabel,
+		StickySessions:   stickyViews,
+		StickyCount:      len(stickyViews),
 	})
 }
