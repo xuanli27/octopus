@@ -54,7 +54,7 @@ docker compose up -d
 ```
 
 > Alpine 镜像：`qianduzzz/octopus:latest-alpine` 或 `ghcr.io/xuanli27/octopus:latest-alpine`  
-> 固定版本：把 `latest` 换成 tag，如 `v0.9.1` / `v0.9.1-alpine`
+> 固定版本：把 `latest` 换成 tag，如 `v0.9.2` / `v0.9.2-alpine`
 
 
 ### 📦 从 Release 下载
@@ -68,9 +68,9 @@ docker compose up -d
 ### 🛠️ 源码运行
 
 **环境要求：**
-- Go 1.24.4
-- Node.js 18+
-- pnpm
+- Go 1.25.0
+- Node.js 22
+- pnpm 11.1.2
 
 ```bash
 # 克隆项目

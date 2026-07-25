@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ExternalLink,
     Globe2,
@@ -11,16 +10,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-    MorphingDialog,
-    MorphingDialogTrigger,
-    MorphingDialogContainer,
-    MorphingDialogContent,
     MorphingDialogTitle,
     MorphingDialogDescription,
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
 import { cn } from '@/lib/utils';
-import type { SiteChannelAccount, SiteChannelCard } from '@/api/endpoints/site-channel';
+import type { SiteChannelCard } from '@/api/endpoints/site-channel';
 import { useEnableSiteAccount } from '@/api/endpoints/site';
 import { SiteAccountPanel } from './SiteAccountPanel';
 import { platformLabel } from './utils';
@@ -273,4 +268,3 @@ function SiteAccountPanelSkeleton() {
         </div>
     );
 }
-

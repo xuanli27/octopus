@@ -92,7 +92,6 @@ func TestResolvePublicModelNamePriority(t *testing.T) {
 	}
 }
 
-
 func TestPublicModelListPendingAndSeed(t *testing.T) {
 	setupAutoGroupTestDB(t)
 	ctx := t.Context()
@@ -141,7 +140,6 @@ func TestPublicModelListPendingAndSeed(t *testing.T) {
 	}
 }
 
-
 func TestPublicModelAssignAlias(t *testing.T) {
 	setupAutoGroupTestDB(t)
 	ctx := t.Context()
@@ -160,7 +158,6 @@ func TestPublicModelAssignAlias(t *testing.T) {
 		t.Fatalf("expected >=2 aliases, got %+v", row2.Aliases)
 	}
 }
-
 
 func TestPublicModelImport(t *testing.T) {
 	setupAutoGroupTestDB(t)
@@ -182,5 +179,126 @@ func TestPublicModelImport(t *testing.T) {
 	}
 	if len(row.Aliases) < 2 {
 		t.Fatalf("aliases %+v", row.Aliases)
+	}
+}
+
+func TestPublicModelRejectsConflictingAliasesWithoutLeavingPartialRows(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+
+	if _, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "canonical-a",
+		Aliases: []string{"upstream/model-a"},
+	}, ctx); err != nil {
+		t.Fatalf("seed model: %v", err)
+	}
+
+	_, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "canonical-b",
+		Aliases: []string{"UPSTREAM/MODEL-A"},
+	}, ctx)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "already belongs") {
+		t.Fatalf("expected readable alias conflict, got %v", err)
+	}
+	if _, getErr := PublicModelGetByName("canonical-b", ctx); getErr == nil {
+		t.Fatal("conflicting create left a partial public model row")
+	}
+
+	models, listErr := PublicModelList(ctx)
+	if listErr != nil {
+		t.Fatalf("list models: %v", listErr)
+	}
+	if len(models) != 1 {
+		t.Fatalf("expected only seed model after rollback, got %d", len(models))
+	}
+}
+
+func TestPublicModelRejectsNameAliasConflictsCaseInsensitively(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+
+	if _, err := PublicModelCreate(&model.PublicModelCreateRequest{Name: "canonical-name"}, ctx); err != nil {
+		t.Fatalf("seed name model: %v", err)
+	}
+	if _, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "alias-owner",
+		Aliases: []string{"legacy/model"},
+	}, ctx); err != nil {
+		t.Fatalf("seed alias model: %v", err)
+	}
+
+	_, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "new-model",
+		Aliases: []string{"CANONICAL-NAME"},
+	}, ctx)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "public model name") {
+		t.Fatalf("expected alias/name conflict, got %v", err)
+	}
+
+	_, err = PublicModelCreate(&model.PublicModelCreateRequest{Name: "LEGACY/MODEL"}, ctx)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "conflicts with alias") {
+		t.Fatalf("expected name/alias conflict, got %v", err)
+	}
+}
+
+func TestPublicModelUpdateConflictDoesNotReplaceExistingAliases(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+
+	first, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "first-model",
+		Aliases: []string{"first-alias"},
+	}, ctx)
+	if err != nil {
+		t.Fatalf("create first: %v", err)
+	}
+	if _, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "second-model",
+		Aliases: []string{"second-alias"},
+	}, ctx); err != nil {
+		t.Fatalf("create second: %v", err)
+	}
+
+	name := "SECOND-MODEL"
+	aliases := []string{"replacement-alias"}
+	_, err = PublicModelUpdate(&model.PublicModelUpdateRequest{
+		ID:      first.ID,
+		Name:    &name,
+		Aliases: aliases,
+	}, ctx)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "existing public model") {
+		t.Fatalf("expected update name conflict, got %v", err)
+	}
+
+	_, err = PublicModelUpdate(&model.PublicModelUpdateRequest{
+		ID:      first.ID,
+		Aliases: []string{"SECOND-ALIAS"},
+	}, ctx)
+	if err == nil || !strings.Contains(strings.ToLower(err.Error()), "already belongs") {
+		t.Fatalf("expected update alias conflict, got %v", err)
+	}
+
+	unchanged, getErr := PublicModelGet(first.ID, ctx)
+	if getErr != nil {
+		t.Fatalf("get unchanged model: %v", getErr)
+	}
+	if unchanged.Name != "first-model" || len(unchanged.Aliases) != 1 || unchanged.Aliases[0].Alias != "first-alias" {
+		t.Fatalf("conflicting update changed existing row: %+v", unchanged)
+	}
+}
+
+func TestPublicModelDeduplicatesAliasesCaseInsensitively(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+
+	row, err := PublicModelCreate(&model.PublicModelCreateRequest{
+		Name:    "dedupe-model",
+		Aliases: []string{" Foo ", "foo", "FOO", "bar"},
+	}, ctx)
+	if err != nil {
+		t.Fatalf("create dedupe model: %v", err)
+	}
+	if len(row.Aliases) != 2 || row.Aliases[0].Alias != "Foo" || row.Aliases[1].Alias != "bar" {
+		t.Fatalf("unexpected normalized aliases: %+v", row.Aliases)
 	}
 }

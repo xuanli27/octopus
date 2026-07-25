@@ -10,20 +10,23 @@ elif [ -x "$HOME/.local/share/mise/installs/go/1.25.0/bin/go" ]; then
   export PATH="$HOME/.local/share/mise/installs/go/1.25.0/bin:$PATH"
 fi
 
-echo "==> 1/5 Go test"
+echo "==> 1/6 Go test"
 go test ./...
 
-echo "==> 2/5 Frontend typecheck"
+echo "==> 2/6 Go vet"
+go vet ./...
+
+echo "==> 3/6 Frontend typecheck"
 (cd web && pnpm exec tsc --noEmit)
 
-echo "==> 3/5 Frontend lint"
+echo "==> 4/6 Frontend lint"
 (cd web && pnpm run lint)
 
-echo "==> 4/5 Release build (frontend + binaries + price update)"
+echo "==> 5/6 Release build (frontend + binaries + price update)"
 bash scripts/build.sh release
 
 if command -v podman >/dev/null 2>&1 || command -v docker >/dev/null 2>&1; then
-  echo "==> 5/5 Container image smoke (linux/amd64 debian Dockerfile)"
+  echo "==> 6/6 Container image smoke (linux/amd64 debian Dockerfile)"
   ENGINE=docker
   command -v podman >/dev/null 2>&1 && ENGINE=podman
   # Prefer prebuilt release binary path used by Dockerfiles
@@ -39,7 +42,7 @@ if command -v podman >/dev/null 2>&1 || command -v docker >/dev/null 2>&1; then
     echo "    skip container smoke (missing build/docker/linux/amd64/octopus)"
   fi
 else
-  echo "==> 5/5 Container smoke skipped (no docker/podman)"
+  echo "==> 6/6 Container smoke skipped (no docker/podman)"
 fi
 
 echo

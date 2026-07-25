@@ -2,13 +2,13 @@ package op
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/xuanli27/octopus/internal/db"
 	"github.com/xuanli27/octopus/internal/model"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func PublicModelList(ctx context.Context) ([]model.PublicModel, error) {
@@ -65,11 +65,15 @@ func PublicModelCreate(req *model.PublicModelCreateRequest, ctx context.Context)
 	// ensure name itself not required as alias; allow optional
 
 	row := &model.PublicModel{
-		Name:    name,
-		Enabled: enabled,
-		Note:    strings.TrimSpace(req.Note),
+		Name:      name,
+		NameLower: strings.ToLower(name),
+		Enabled:   enabled,
+		Note:      strings.TrimSpace(req.Note),
 	}
 	err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := validatePublicModelTx(tx, 0, name, aliases); err != nil {
+			return err
+		}
 		if err := tx.Create(row).Error; err != nil {
 			return err
 		}
@@ -89,14 +93,29 @@ func PublicModelUpdate(req *model.PublicModelUpdateRequest, ctx context.Context)
 	if err != nil {
 		return nil, err
 	}
+	nextName := strings.TrimSpace(row.Name)
+	nextAliases := make([]string, 0, len(row.Aliases))
+	for _, alias := range row.Aliases {
+		nextAliases = append(nextAliases, alias.Alias)
+	}
+	nextAliases = normalizeAliasList(nextAliases)
+	if req.Name != nil {
+		nextName = strings.TrimSpace(*req.Name)
+		if nextName == "" {
+			return nil, fmt.Errorf("name required")
+		}
+	}
+	if req.Aliases != nil {
+		nextAliases = normalizeAliasList(req.Aliases)
+	}
 	err = db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := validatePublicModelTx(tx, row.ID, nextName, nextAliases); err != nil {
+			return err
+		}
 		updates := map[string]any{}
 		if req.Name != nil {
-			name := strings.TrimSpace(*req.Name)
-			if name == "" {
-				return fmt.Errorf("name required")
-			}
-			updates["name"] = name
+			updates["name"] = nextName
+			updates["name_lower"] = strings.ToLower(nextName)
 		}
 		if req.Note != nil {
 			updates["note"] = strings.TrimSpace(*req.Note)
@@ -110,7 +129,7 @@ func PublicModelUpdate(req *model.PublicModelUpdateRequest, ctx context.Context)
 			}
 		}
 		if req.Aliases != nil {
-			return replaceAliasesTx(tx, row.ID, normalizeAliasList(req.Aliases))
+			return replaceAliasesTx(tx, row.ID, nextAliases)
 		}
 		return nil
 	})
@@ -130,6 +149,14 @@ func PublicModelDelete(id int, ctx context.Context) error {
 }
 
 func replaceAliasesTx(tx *gorm.DB, publicModelID int, aliases []string) error {
+	aliases = normalizeAliasList(aliases)
+	var row model.PublicModel
+	if err := tx.Select("id", "name").First(&row, publicModelID).Error; err != nil {
+		return err
+	}
+	if err := validatePublicModelTx(tx, publicModelID, row.Name, aliases); err != nil {
+		return err
+	}
 	if err := tx.Where("public_model_id = ?", publicModelID).Delete(&model.PublicModelAlias{}).Error; err != nil {
 		return err
 	}
@@ -137,13 +164,8 @@ func replaceAliasesTx(tx *gorm.DB, publicModelID int, aliases []string) error {
 		return nil
 	}
 	rows := make([]model.PublicModelAlias, 0, len(aliases))
-	seen := map[string]struct{}{}
 	for _, a := range aliases {
 		lower := strings.ToLower(a)
-		if _, ok := seen[lower]; ok {
-			continue
-		}
-		seen[lower] = struct{}{}
 		rows = append(rows, model.PublicModelAlias{
 			PublicModelID: publicModelID,
 			Alias:         a,
@@ -153,7 +175,87 @@ func replaceAliasesTx(tx *gorm.DB, publicModelID int, aliases []string) error {
 	if len(rows) == 0 {
 		return nil
 	}
-	return tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rows).Error
+	return tx.Create(&rows).Error
+}
+
+// validatePublicModelTx rejects ambiguous names and aliases before any alias
+// rows are replaced. Matching is case-insensitive and includes disabled
+// entries: re-enabling a conflicting row later must not create an ambiguity.
+func validatePublicModelTx(tx *gorm.DB, publicModelID int, name string, aliases []string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("name required")
+	}
+
+	nameLower := strings.ToLower(name)
+	if conflict, err := findPublicModelByLowerNameTx(tx, nameLower, publicModelID); err != nil {
+		return err
+	} else if conflict != nil {
+		return fmt.Errorf("public model name %q conflicts with existing public model %q", name, conflict.Name)
+	}
+	if conflict, err := findAliasConflictTx(tx, nameLower, publicModelID); err != nil {
+		return err
+	} else if conflict != nil {
+		return fmt.Errorf("public model name %q conflicts with alias %q of public model %q", name, conflict.Alias, conflict.ModelName)
+	}
+
+	for _, rawAlias := range aliases {
+		alias := strings.TrimSpace(rawAlias)
+		if alias == "" {
+			continue
+		}
+		aliasLower := strings.ToLower(alias)
+		if conflict, err := findPublicModelByLowerNameTx(tx, aliasLower, publicModelID); err != nil {
+			return err
+		} else if conflict != nil {
+			return fmt.Errorf("alias %q conflicts with public model name %q", alias, conflict.Name)
+		}
+		if conflict, err := findAliasConflictTx(tx, aliasLower, publicModelID); err != nil {
+			return err
+		} else if conflict != nil {
+			return fmt.Errorf("alias %q already belongs to public model %q", alias, conflict.ModelName)
+		}
+	}
+	return nil
+}
+
+func findPublicModelByLowerNameTx(tx *gorm.DB, lowerName string, publicModelID int) (*model.PublicModel, error) {
+	var row model.PublicModel
+	query := tx.Where("LOWER(name) = ?", lowerName)
+	if publicModelID > 0 {
+		query = query.Where("id <> ?", publicModelID)
+	}
+	if err := query.First(&row).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &row, nil
+}
+
+type publicModelAliasConflict struct {
+	Alias     string
+	ModelName string
+}
+
+func findAliasConflictTx(tx *gorm.DB, aliasLower string, publicModelID int) (*publicModelAliasConflict, error) {
+	var aliasRow model.PublicModelAlias
+	query := tx.Where("alias_lower = ?", aliasLower)
+	if publicModelID > 0 {
+		query = query.Where("public_model_id <> ?", publicModelID)
+	}
+	if err := query.First(&aliasRow).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var owner model.PublicModel
+	if err := tx.Select("id", "name").First(&owner, aliasRow.PublicModelID).Error; err != nil {
+		return nil, err
+	}
+	return &publicModelAliasConflict{Alias: aliasRow.Alias, ModelName: owner.Name}, nil
 }
 
 func normalizeAliasList(in []string) []string {
@@ -276,7 +378,6 @@ func PublicModelResolveBatch(upstreams []string, ctx context.Context) ([]model.P
 	return out, nil
 }
 
-
 // InferModelFamily maps a public/upstream name to a coarse vendor family for UI filters.
 // This is intentionally a small built-in list (not DB): stable defaults, no migration sprawl.
 // Users still organize via public names/aliases; families are for browsing only.
@@ -315,7 +416,6 @@ func InferModelFamily(name string) string {
 		return "other"
 	}
 }
-
 
 // PublicModelListPending scans enabled channels and returns upstream models that do not
 // resolve via dictionary exact alias / public name (normalize-only suggestions still pending).
@@ -409,7 +509,6 @@ func PublicModelSeedCommon(ctx context.Context) (created int, err error) {
 	return created, nil
 }
 
-
 // PublicModelAssignAlias attaches an upstream id to a public name (create public model if needed).
 func PublicModelAssignAlias(publicName, alias string, ctx context.Context) (*model.PublicModel, error) {
 	publicName = strings.TrimSpace(publicName)
@@ -444,7 +543,6 @@ func PublicModelAssignAlias(publicName, alias string, ctx context.Context) (*mod
 		Aliases: existing,
 	}, ctx)
 }
-
 
 // PublicModelImport upserts dictionary rows by public name.
 func PublicModelImport(items []model.PublicModelImportItem, ctx context.Context) (*model.PublicModelImportResult, error) {

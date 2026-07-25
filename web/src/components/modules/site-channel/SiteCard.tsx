@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -14,14 +14,11 @@ import {
     XCircle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     MorphingDialog,
     MorphingDialogTrigger,
     MorphingDialogContainer,
     MorphingDialogContent,
-    MorphingDialogTitle,
-    MorphingDialogDescription,
     useMorphingDialog,
 } from '@/components/ui/morphing-dialog';
 import { cn, formatCount, formatMoney } from '@/lib/utils';
@@ -288,4 +285,3 @@ export function SiteCardJumpWatcher({
 
     return null;
 }
-

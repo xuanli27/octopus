@@ -224,7 +224,10 @@ type Props = {
 };
 
 export function SyncResultDialog({ open, context, onClose, onGoFixKeys, onGoRoutes }: Props) {
-    const groups = context?.result.group_results ?? [];
+    const groups = useMemo(
+        () => context?.result.group_results ?? [],
+        [context?.result.group_results],
+    );
     const counts = useMemo(() => summarizeGroups(groups), [groups]);
     const tone = overallTone(context?.result.status ?? '');
     const needsKeyAction = counts.missingKey > 0;
