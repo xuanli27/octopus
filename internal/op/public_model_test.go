@@ -160,3 +160,27 @@ func TestPublicModelAssignAlias(t *testing.T) {
 		t.Fatalf("expected >=2 aliases, got %+v", row2.Aliases)
 	}
 }
+
+
+func TestPublicModelImport(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+	res, err := PublicModelImport([]model.PublicModelImportItem{
+		{Name: "gpt-4o", Aliases: []string{"gpt-4o-all"}},
+		{Name: "gpt-4o", Aliases: []string{"openai/gpt-4o"}},
+		{Name: "", Aliases: []string{"x"}},
+	}, ctx)
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if res.Created != 1 || res.Updated != 1 || res.Skipped != 1 {
+		t.Fatalf("unexpected result %+v", res)
+	}
+	row, err := PublicModelGetByName("gpt-4o", ctx)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if len(row.Aliases) < 2 {
+		t.Fatalf("aliases %+v", row.Aliases)
+	}
+}

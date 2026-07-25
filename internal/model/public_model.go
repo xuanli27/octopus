@@ -60,3 +60,19 @@ type PublicModelPendingItem struct {
 	SuggestedPublic string `json:"suggested_public,omitempty"`
 	Via             string `json:"via,omitempty"`
 }
+
+
+// PublicModelImportItem is one dictionary row for JSON import/export.
+type PublicModelImportItem struct {
+	Name    string   `json:"name"`
+	Note    string   `json:"note,omitempty"`
+	Aliases []string `json:"aliases,omitempty"`
+	Enabled *bool    `json:"enabled,omitempty"`
+}
+
+// PublicModelImportResult summarizes import.
+type PublicModelImportResult struct {
+	Created int `json:"created"`
+	Updated int `json:"updated"`
+	Skipped int `json:"skipped"`
+}

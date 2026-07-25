@@ -48,6 +48,12 @@
 - 不转发时把上游 model 改写成规范名  
 - 不让每个上游 id 自动变一个对外 model  
 
+## 导入 / 导出
+
+- `GET /api/v1/public-models/export` → `[{ name, aliases, note, enabled }]`
+- `POST /api/v1/public-models/import` body `{ "items": [ ... ] }`（按 name 合并别名）
+- UI：路由 → 规范/别名 → 导出（剪贴板+文件）/ 导入（选 JSON 文件）
+
 ## API
 
 - `GET/POST /api/v1/public-models`

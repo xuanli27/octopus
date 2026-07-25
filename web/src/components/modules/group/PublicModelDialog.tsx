@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { BookMarked, Plus, Sparkles, Trash2 } from 'lucide-react';
 import {
     useCreatePublicModel,
@@ -9,6 +9,8 @@ import {
     usePublicModelPending,
     useSeedPublicModels,
     useAssignPublicModelAlias,
+    useExportPublicModels,
+    useImportPublicModels,
     useUpdatePublicModel,
     type PublicModel,
     type PublicModelPendingItem,
@@ -40,6 +42,9 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
     const deleteMut = useDeletePublicModel();
     const seedMut = useSeedPublicModels();
     const assignMut = useAssignPublicModelAlias();
+    const exportMut = useExportPublicModels();
+    const importMut = useImportPublicModels();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const runAutoGroup = useRunGroupAutoGroup();
 
     const [tab, setTab] = useState<'dict' | 'pending'>('dict');
@@ -205,6 +210,77 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
                     >
                         <Sparkles className="size-3.5" />
                         预置常用
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-2xl"
+                        disabled={exportMut.isPending}
+                        onClick={() =>
+                            exportMut.mutate(undefined, {
+                                onSuccess: async (items) => {
+                                    const text = JSON.stringify({ items }, null, 2);
+                                    try {
+                                        await navigator.clipboard.writeText(text);
+                                    } catch {
+                                        // ignore clipboard failures; still download
+                                    }
+                                    try {
+                                        const blob = new Blob([text], { type: 'application/json' });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `octopus-public-models-${new Date().toISOString().slice(0, 10)}.json`;
+                                        a.click();
+                                        URL.revokeObjectURL(url);
+                                    } catch {
+                                        // ignore
+                                    }
+                                    toast.success(`已导出 ${items.length} 条（剪贴板 + 文件）`);
+                                },
+                                onError: (e) => toast.error(e.message || '导出失败'),
+                            })
+                        }
+                    >
+                        导出
+                    </Button>
+                    <input
+                        id="import-public-models-file"
+                        ref={fileInputRef}
+                        type="file"
+                        accept="application/json,.json"
+                        className="hidden"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file) return;
+                            try {
+                                const text = await file.text();
+                                const parsed = JSON.parse(text) as { items?: Array<{ name: string; aliases?: string[]; note?: string }> } | Array<{ name: string }>;
+                                const items = Array.isArray(parsed) ? parsed : (parsed.items ?? []);
+                                if (!items.length) {
+                                    toast.error('JSON 无有效 items');
+                                    return;
+                                }
+                                importMut.mutate(items, {
+                                    onSuccess: (r) => toast.success(`导入完成：新建 ${r.created} / 更新 ${r.updated} / 跳过 ${r.skipped}`),
+                                    onError: (err) => toast.error(err.message || '导入失败'),
+                                });
+                            } catch {
+                                toast.error('无法解析该 JSON 文件');
+                            }
+                        }}
+                    />
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-2xl"
+                        disabled={importMut.isPending}
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        导入
                     </Button>
                     <Button
                         type="button"

@@ -170,6 +170,7 @@ function invalidateChannelRelated(queryClient: ReturnType<typeof useQueryClient>
     queryClient.invalidateQueries({ queryKey: ['runtime'] });
     queryClient.invalidateQueries({ queryKey: ['group-health'] });
     queryClient.invalidateQueries({ queryKey: ['site-channel', 'list'] });
+    queryClient.invalidateQueries({ queryKey: ['public-models', 'pending'] });
 }
 
 export function useChannelList() {

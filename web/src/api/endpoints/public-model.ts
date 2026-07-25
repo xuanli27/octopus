@@ -114,3 +114,34 @@ export function useAssignPublicModelAlias() {
         },
     });
 }
+
+export type PublicModelImportItem = {
+    name: string;
+    note?: string;
+    aliases?: string[];
+    enabled?: boolean;
+};
+
+export type PublicModelImportResult = {
+    created: number;
+    updated: number;
+    skipped: number;
+};
+
+export function useExportPublicModels() {
+    return useMutation({
+        mutationFn: async () => apiClient.get<PublicModelImportItem[]>('/api/v1/public-models/export'),
+    });
+}
+
+export function useImportPublicModels() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async (items: PublicModelImportItem[]) =>
+            apiClient.post<PublicModelImportResult>('/api/v1/public-models/import', { items }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['public-models'] });
+            qc.invalidateQueries({ queryKey: ['public-models', 'pending'] });
+        },
+    });
+}

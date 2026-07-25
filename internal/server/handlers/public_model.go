@@ -21,6 +21,8 @@ func init() {
 		AddRoute(router.NewRoute("/pending", http.MethodGet).Handle(pendingPublicModels)).
 		AddRoute(router.NewRoute("/seed", http.MethodPost).Handle(seedPublicModels)).
 		AddRoute(router.NewRoute("/assign", http.MethodPost).Handle(assignPublicModelAlias).Use(middleware.RequireJSON())).
+		AddRoute(router.NewRoute("/import", http.MethodPost).Handle(importPublicModels).Use(middleware.RequireJSON())).
+		AddRoute(router.NewRoute("/export", http.MethodGet).Handle(exportPublicModels)).
 		AddRoute(router.NewRoute("/:id", http.MethodPut).Handle(updatePublicModel).Use(middleware.RequireJSON())).
 		AddRoute(router.NewRoute("/:id", http.MethodDelete).Handle(deletePublicModel))
 }
@@ -136,4 +138,46 @@ func assignPublicModelAlias(c *gin.Context) {
 		return
 	}
 	resp.Success(c, row)
+}
+
+
+func exportPublicModels(c *gin.Context) {
+	rows, err := op.PublicModelList(c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := make([]model.PublicModelImportItem, 0, len(rows))
+	for _, r := range rows {
+		aliases := make([]string, 0, len(r.Aliases))
+		for _, a := range r.Aliases {
+			aliases = append(aliases, a.Alias)
+		}
+		en := r.Enabled
+		out = append(out, model.PublicModelImportItem{
+			Name:    r.Name,
+			Note:    r.Note,
+			Aliases: aliases,
+			Enabled: &en,
+		})
+	}
+	resp.Success(c, out)
+}
+
+type importPublicModelsRequest struct {
+	Items []model.PublicModelImportItem `json:"items"`
+}
+
+func importPublicModels(c *gin.Context) {
+	var req importPublicModelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.InvalidJSON(c)
+		return
+	}
+	res, err := op.PublicModelImport(req.Items, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, res)
 }

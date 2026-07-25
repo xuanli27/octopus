@@ -444,3 +444,69 @@ func PublicModelAssignAlias(publicName, alias string, ctx context.Context) (*mod
 		Aliases: existing,
 	}, ctx)
 }
+
+
+// PublicModelImport upserts dictionary rows by public name.
+func PublicModelImport(items []model.PublicModelImportItem, ctx context.Context) (*model.PublicModelImportResult, error) {
+	res := &model.PublicModelImportResult{}
+	for _, it := range items {
+		name := strings.TrimSpace(it.Name)
+		if name == "" {
+			res.Skipped++
+			continue
+		}
+		aliases := normalizeAliasList(it.Aliases)
+		existing, err := PublicModelGetByName(name, ctx)
+		if err != nil {
+			req := &model.PublicModelCreateRequest{
+				Name:    name,
+				Note:    it.Note,
+				Aliases: aliases,
+				Enabled: it.Enabled,
+			}
+			if _, err := PublicModelCreate(req, ctx); err != nil {
+				res.Skipped++
+				continue
+			}
+			res.Created++
+			continue
+		}
+		// merge aliases
+		merged := make([]string, 0, len(existing.Aliases)+len(aliases))
+		seen := map[string]struct{}{}
+		for _, a := range existing.Aliases {
+			al := strings.TrimSpace(a.Alias)
+			if al == "" {
+				continue
+			}
+			seen[strings.ToLower(al)] = struct{}{}
+			merged = append(merged, al)
+		}
+		for _, a := range aliases {
+			if _, ok := seen[strings.ToLower(a)]; ok {
+				continue
+			}
+			seen[strings.ToLower(a)] = struct{}{}
+			merged = append(merged, a)
+		}
+		note := existing.Note
+		if strings.TrimSpace(it.Note) != "" {
+			note = it.Note
+		}
+		enabled := existing.Enabled
+		if it.Enabled != nil {
+			enabled = *it.Enabled
+		}
+		if _, err := PublicModelUpdate(&model.PublicModelUpdateRequest{
+			ID:      existing.ID,
+			Note:    &note,
+			Enabled: &enabled,
+			Aliases: merged,
+		}, ctx); err != nil {
+			res.Skipped++
+			continue
+		}
+		res.Updated++
+	}
+	return res, nil
+}
