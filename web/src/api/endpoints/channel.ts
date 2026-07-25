@@ -161,10 +161,15 @@ export type FetchModelRequest = {
  */
 
 function invalidateChannelRelated(queryClient: ReturnType<typeof useQueryClient>) {
-    invalidateChannelRelated(queryClient);
+    queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
+    queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+    queryClient.invalidateQueries({ queryKey: ['models', 'channel'] });
+    queryClient.invalidateQueries({ queryKey: ['proxy-pool'] });
+    queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
     // Channel config changes reset circuit/sticky + recent fail window on the server.
     queryClient.invalidateQueries({ queryKey: ['runtime'] });
     queryClient.invalidateQueries({ queryKey: ['group-health'] });
+    queryClient.invalidateQueries({ queryKey: ['site-channel', 'list'] });
 }
 
 export function useChannelList() {

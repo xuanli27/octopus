@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -137,6 +138,69 @@ func getRuntimeOverview(c *gin.Context) {
 	})
 	if len(health) > 20 {
 		health = health[:20]
+	}
+
+	// Optional focus: /overview?channel_id=123
+	if raw := c.Query("channel_id"); raw != "" {
+		if id, err := strconv.Atoi(raw); err == nil && id > 0 {
+			filteredViews := make([]runtimeCircuitView, 0)
+			for _, v := range views {
+				if v.ChannelID == id {
+					filteredViews = append(filteredViews, v)
+				}
+			}
+			// health list only keeps "interesting" rows; also attach a zero-row for focus if missing
+			filteredHealth := make([]runtimeChannelHealth, 0)
+			foundHealth := false
+			for _, h := range health {
+				if h.ChannelID == id {
+					filteredHealth = append(filteredHealth, h)
+					foundHealth = true
+				}
+			}
+			if !foundHealth {
+				// Build from raw recent snapshot even if previously filtered out.
+				for _, r := range recent {
+					if r.ChannelID != id {
+						continue
+					}
+					name := ""
+					enabled := true
+					if ch, err := op.ChannelGet(r.ChannelID, c.Request.Context()); err == nil && ch != nil {
+						name = ch.Name
+						enabled = ch.Enabled
+					}
+					filteredHealth = append(filteredHealth, runtimeChannelHealth{
+						ChannelID:      r.ChannelID,
+						ChannelName:    name,
+						RequestSuccess: r.RequestSuccess,
+						RequestFailed:  r.RequestFailed,
+						TotalRequests:  r.TotalRequests,
+						FailRate:       r.FailRate,
+						Enabled:        enabled,
+						Window:         windowLabel,
+					})
+				}
+			}
+			openF, halfF := 0, 0
+			for _, v := range filteredViews {
+				switch v.State {
+				case "open":
+					openF++
+				case "half_open":
+					halfF++
+				}
+			}
+			resp.Success(c, runtimeOverview{
+				OpenCircuits:     openF,
+				HalfOpenCircuits: halfF,
+				Circuits:         filteredViews,
+				ChannelHealth:    filteredHealth,
+				UnhealthyCount:   len(filteredHealth),
+				HealthWindow:     windowLabel,
+			})
+			return
+		}
 	}
 
 	resp.Success(c, runtimeOverview{

@@ -32,10 +32,15 @@ export type RuntimeOverview = {
     health_window?: string;
 };
 
-export function useRuntimeOverview(enabled = true) {
+export function useRuntimeOverview(enabled = true, channelId?: number) {
     return useQuery({
-        queryKey: ['runtime', 'overview'],
-        queryFn: async () => apiClient.get<RuntimeOverview>('/api/v1/runtime/overview'),
+        queryKey: channelId ? ['runtime', 'overview', channelId] : ['runtime', 'overview'],
+        queryFn: async () =>
+            apiClient.get<RuntimeOverview>(
+                channelId
+                    ? `/api/v1/runtime/overview?channel_id=${channelId}`
+                    : '/api/v1/runtime/overview',
+            ),
         enabled,
         refetchInterval: 15000,
     });

@@ -18,18 +18,19 @@ func resetBalancerStateForChannel(channelID int) {
 }
 
 func resetBalancerStateForChannels(channelIDs ...int) {
-	if resetRelayBalancerStateForChannel == nil || len(channelIDs) == 0 {
+	if len(channelIDs) == 0 {
 		return
 	}
 	seen := make(map[int]struct{}, len(channelIDs))
 	for _, channelID := range channelIDs {
-		if channelID == 0 {
+		if channelID <= 0 {
 			continue
 		}
 		if _, ok := seen[channelID]; ok {
 			continue
 		}
 		seen[channelID] = struct{}{}
-		resetRelayBalancerStateForChannel(channelID)
+		// Always go through the single-channel path so recent-health + circuit/sticky stay in sync.
+		resetBalancerStateForChannel(channelID)
 	}
 }
