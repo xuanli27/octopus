@@ -101,3 +101,16 @@ export function useSeedPublicModels() {
         },
     });
 }
+
+export function useAssignPublicModelAlias() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async (payload: { public: string; alias: string }) =>
+            apiClient.post<PublicModel>('/api/v1/public-models/assign', payload),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['public-models'] });
+            qc.invalidateQueries({ queryKey: ['public-models', 'pending'] });
+            qc.invalidateQueries({ queryKey: ['groups', 'list'] });
+        },
+    });
+}

@@ -8,6 +8,7 @@ import {
     usePublicModelList,
     usePublicModelPending,
     useSeedPublicModels,
+    useAssignPublicModelAlias,
     useUpdatePublicModel,
     type PublicModel,
     type PublicModelPendingItem,
@@ -37,6 +38,7 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
     const updateMut = useUpdatePublicModel();
     const deleteMut = useDeletePublicModel();
     const seedMut = useSeedPublicModels();
+    const assignMut = useAssignPublicModelAlias();
 
     const [tab, setTab] = useState<'dict' | 'pending'>('dict');
     const [name, setName] = useState('');
@@ -92,33 +94,33 @@ export function PublicModelDialog({ open, onOpenChange }: { open: boolean; onOpe
     };
 
     const applyPending = (item: PublicModelPendingItem, asNew: boolean) => {
-        const publicName = (item.suggested_public || item.upstream).trim();
+        const suggested = (item.suggested_public || '').trim();
         if (asNew) {
             setTab('dict');
             setEditing(null);
-            setName(publicName);
+            setName(suggested || item.upstream);
             setAliases(item.upstream);
-            setNote(`来自渠道 ${item.channel_name}`);
+            setNote(item.channel_name ? `来自渠道 ${item.channel_name}` : '');
             return;
         }
-        // merge into selected or match existing by suggested
-        const target =
-            editing ||
-            sorted.find((m) => m.name.toLowerCase() === publicName.toLowerCase()) ||
-            sorted.find((m) => m.name.toLowerCase() === item.upstream.toLowerCase());
-        if (!target) {
+        // Prefer currently editing public name, then suggestion, then ask user via form.
+        const targetName =
+            (editing?.name || '').trim() ||
+            suggested ||
+            sorted.find((m) => m.name.toLowerCase() === item.upstream.toLowerCase())?.name ||
+            '';
+        if (!targetName) {
             setTab('dict');
             setEditing(null);
-            setName(publicName);
+            setName('');
             setAliases(item.upstream);
-            toast.success('已填入表单，请确认后创建');
+            toast.success('请填写要并入的规范名后保存');
             return;
         }
-        const next = Array.from(new Set([...(target.aliases ?? []).map((a) => a.alias), item.upstream]));
-        updateMut.mutate(
-            { id: target.id, aliases: next },
+        assignMut.mutate(
+            { public: targetName, alias: item.upstream },
             {
-                onSuccess: () => toast.success(`已将 ${item.upstream} 并入 ${target.name}`),
+                onSuccess: (row) => toast.success(`已将 ${item.upstream} 并入 ${row.name}`),
                 onError: (e) => toast.error(e.message || '合并失败'),
             },
         );

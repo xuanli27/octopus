@@ -20,6 +20,7 @@ func init() {
 		AddRoute(router.NewRoute("/resolve", http.MethodPost).Handle(resolvePublicModels).Use(middleware.RequireJSON())).
 		AddRoute(router.NewRoute("/pending", http.MethodGet).Handle(pendingPublicModels)).
 		AddRoute(router.NewRoute("/seed", http.MethodPost).Handle(seedPublicModels)).
+		AddRoute(router.NewRoute("/assign", http.MethodPost).Handle(assignPublicModelAlias).Use(middleware.RequireJSON())).
 		AddRoute(router.NewRoute("/:id", http.MethodPut).Handle(updatePublicModel).Use(middleware.RequireJSON())).
 		AddRoute(router.NewRoute("/:id", http.MethodDelete).Handle(deletePublicModel))
 }
@@ -115,4 +116,24 @@ func seedPublicModels(c *gin.Context) {
 		return
 	}
 	resp.Success(c, gin.H{"created": n})
+}
+
+
+type assignPublicModelRequest struct {
+	Public string `json:"public" binding:"required"`
+	Alias  string `json:"alias" binding:"required"`
+}
+
+func assignPublicModelAlias(c *gin.Context) {
+	var req assignPublicModelRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.InvalidJSON(c)
+		return
+	}
+	row, err := op.PublicModelAssignAlias(req.Public, req.Alias, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, row)
 }

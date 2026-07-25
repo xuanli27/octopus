@@ -144,11 +144,15 @@ func ensurePublicGroupsForChannel(channel *model.Channel, ctx context.Context) {
 		return
 	}
 	channelModelNames := splitChannelModelNames(channel.Model, channel.CustomModel)
-	// Exact reconcile with current normalize setting.
+	aliasIdx, _ := loadPublicAliasIndex(ctx)
+	// Exact reconcile with current normalize + alias dictionary.
 	for _, group := range groups {
 		desired, ok := matchModelsForAutoGroup(model.AutoGroupTypeExact, group, channelModelNames, channel.ID)
 		if !ok {
 			continue
+		}
+		if aliasIdx != nil {
+			desired = mergeUniqueStrings(desired, modelsResolvedToPublic(channelModelNames, group.Name, aliasIdx))
 		}
 		_ = reconcileGroupItemsForChannel(group, channel.ID, desired, ctx)
 	}

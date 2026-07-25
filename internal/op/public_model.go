@@ -408,3 +408,39 @@ func PublicModelSeedCommon(ctx context.Context) (created int, err error) {
 	}
 	return created, nil
 }
+
+
+// PublicModelAssignAlias attaches an upstream id to a public name (create public model if needed).
+func PublicModelAssignAlias(publicName, alias string, ctx context.Context) (*model.PublicModel, error) {
+	publicName = strings.TrimSpace(publicName)
+	alias = strings.TrimSpace(alias)
+	if publicName == "" || alias == "" {
+		return nil, fmt.Errorf("public name and alias required")
+	}
+	row, err := PublicModelGetByName(publicName, ctx)
+	if err != nil {
+		// create
+		return PublicModelCreate(&model.PublicModelCreateRequest{
+			Name:    publicName,
+			Aliases: []string{alias},
+		}, ctx)
+	}
+	// append alias if missing
+	existing := make([]string, 0, len(row.Aliases)+1)
+	seen := map[string]struct{}{}
+	for _, a := range row.Aliases {
+		al := strings.TrimSpace(a.Alias)
+		if al == "" {
+			continue
+		}
+		seen[strings.ToLower(al)] = struct{}{}
+		existing = append(existing, al)
+	}
+	if _, ok := seen[strings.ToLower(alias)]; !ok {
+		existing = append(existing, alias)
+	}
+	return PublicModelUpdate(&model.PublicModelUpdateRequest{
+		ID:      row.ID,
+		Aliases: existing,
+	}, ctx)
+}

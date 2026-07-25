@@ -140,3 +140,23 @@ func TestPublicModelListPendingAndSeed(t *testing.T) {
 		t.Fatalf("weird-model-xyz should still be pending, got %+v", pending2)
 	}
 }
+
+
+func TestPublicModelAssignAlias(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+	row, err := PublicModelAssignAlias("gpt-4o", "gpt-4o-all", ctx)
+	if err != nil {
+		t.Fatalf("assign create: %v", err)
+	}
+	if row.Name != "gpt-4o" {
+		t.Fatalf("name %q", row.Name)
+	}
+	row2, err := PublicModelAssignAlias("gpt-4o", "openai/gpt-4o-fast", ctx)
+	if err != nil {
+		t.Fatalf("assign append: %v", err)
+	}
+	if len(row2.Aliases) < 2 {
+		t.Fatalf("expected >=2 aliases, got %+v", row2.Aliases)
+	}
+}
