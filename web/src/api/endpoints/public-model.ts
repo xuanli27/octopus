@@ -24,6 +24,14 @@ export type PublicModelResolveResult = {
     via: string;
 };
 
+export type PublicModelPendingItem = {
+    upstream: string;
+    channel_id: number;
+    channel_name: string;
+    suggested_public?: string;
+    via?: string;
+};
+
 export function usePublicModelList() {
     return useQuery({
         queryKey: ['public-models', 'list'],
@@ -38,6 +46,7 @@ export function useCreatePublicModel() {
             apiClient.post<PublicModel>('/api/v1/public-models', payload),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['public-models'] });
+            qc.invalidateQueries({ queryKey: ['public-models', 'pending'] });
             qc.invalidateQueries({ queryKey: ['groups', 'list'] });
         },
     });
@@ -50,6 +59,7 @@ export function useUpdatePublicModel() {
             apiClient.put<PublicModel>(`/api/v1/public-models/${payload.id}`, payload),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['public-models'] });
+            qc.invalidateQueries({ queryKey: ['public-models', 'pending'] });
             qc.invalidateQueries({ queryKey: ['groups', 'list'] });
         },
     });
@@ -61,6 +71,7 @@ export function useDeletePublicModel() {
         mutationFn: async (id: number) => apiClient.delete(`/api/v1/public-models/${id}`),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['public-models'] });
+            qc.invalidateQueries({ queryKey: ['public-models', 'pending'] });
         },
     });
 }
@@ -69,5 +80,24 @@ export function useResolvePublicModels() {
     return useMutation({
         mutationFn: async (upstreams: string[]) =>
             apiClient.post<PublicModelResolveResult[]>('/api/v1/public-models/resolve', { upstreams }),
+    });
+}
+
+export function usePublicModelPending(enabled = true) {
+    return useQuery({
+        queryKey: ['public-models', 'pending'],
+        queryFn: async () => apiClient.get<PublicModelPendingItem[]>('/api/v1/public-models/pending'),
+        enabled,
+    });
+}
+
+export function useSeedPublicModels() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async () => apiClient.post<{ created: number }>('/api/v1/public-models/seed', {}),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['public-models'] });
+            qc.invalidateQueries({ queryKey: ['public-models', 'pending'] });
+        },
     });
 }

@@ -5,6 +5,7 @@ import { BookMarked, FolderTree, Plus, Sparkles, Waypoints } from 'lucide-react'
 import { useTranslations } from 'next-intl';
 import { GroupCard } from './Card';
 import { PublicModelDialog } from './PublicModelDialog';
+import { usePublicModelPending } from '@/api/endpoints/public-model';
 import { useGroupList } from '@/api/endpoints/group';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
@@ -27,6 +28,8 @@ export function Group() {
     const [createOpen, setCreateOpen] = useState(false);
     const [autoGroupOpen, setAutoGroupOpen] = useState(false);
     const [dictOpen, setDictOpen] = useState(false);
+    const { data: pendingModels } = usePublicModelPending(true);
+    const pendingCount = pendingModels?.length ?? 0;
     const [family, setFamily] = useState<ModelFamilyId>('all');
 
     const sortedGroups = useMemo(() => {
@@ -106,6 +109,11 @@ export function Group() {
                         <Button type="button" size="sm" variant="outline" className="h-8 rounded-2xl" onClick={() => setDictOpen(true)}>
                             <BookMarked className="size-3.5" />
                             规范/别名
+                            {pendingCount > 0 ? (
+                                <span className="ml-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                    {pendingCount}
+                                </span>
+                            ) : null}
                         </Button>
                     </div>
                 </div>

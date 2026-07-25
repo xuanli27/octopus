@@ -91,3 +91,52 @@ func TestResolvePublicModelNamePriority(t *testing.T) {
 		t.Fatalf("normalize to dict public expected gpt-4o, got %q via %q", pub, via)
 	}
 }
+
+
+func TestPublicModelListPendingAndSeed(t *testing.T) {
+	setupAutoGroupTestDB(t)
+	ctx := t.Context()
+
+	ch := testChannel("pending-ch", "weird-model-xyz,gpt-4o-2024-08-06", model.AutoGroupTypeExact)
+	if err := ChannelCreate(ch, ctx); err != nil {
+		t.Fatalf("ChannelCreate: %v", err)
+	}
+
+	// Without dict, both pending (normalize may suggest gpt-4o)
+	pending, err := PublicModelListPending(ctx)
+	if err != nil {
+		t.Fatalf("pending: %v", err)
+	}
+	if len(pending) < 1 {
+		t.Fatalf("expected pending models, got %+v", pending)
+	}
+
+	n, err := PublicModelSeedCommon(ctx)
+	if err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if n < 1 {
+		t.Fatalf("expected seed created >0, got %d", n)
+	}
+
+	// After seed + normalize, gpt-4o variant should leave pending; weird remains
+	pending2, err := PublicModelListPending(ctx)
+	if err != nil {
+		t.Fatalf("pending2: %v", err)
+	}
+	for _, p := range pending2 {
+		if p.Upstream == "gpt-4o-2024-08-06" {
+			// should be resolved if normalize maps into dict gpt-4o
+			t.Fatalf("gpt-4o-2024-08-06 should be resolved via dict+normalize, still pending")
+		}
+	}
+	var weirdOK bool
+	for _, p := range pending2 {
+		if p.Upstream == "weird-model-xyz" {
+			weirdOK = true
+		}
+	}
+	if !weirdOK {
+		t.Fatalf("weird-model-xyz should still be pending, got %+v", pending2)
+	}
+}

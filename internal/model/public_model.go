@@ -49,3 +49,14 @@ type PublicModelResolveResult struct {
 	// Via: exact_alias | normalize | public_name | none
 	Via string `json:"via"`
 }
+
+
+// PublicModelPendingItem is an upstream model id not yet mapped by the dictionary
+// (for classification UI).
+type PublicModelPendingItem struct {
+	Upstream        string `json:"upstream"`
+	ChannelID       int    `json:"channel_id"`
+	ChannelName     string `json:"channel_name"`
+	SuggestedPublic string `json:"suggested_public,omitempty"`
+	Via             string `json:"via,omitempty"`
+}

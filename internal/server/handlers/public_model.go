@@ -18,6 +18,8 @@ func init() {
 		AddRoute(router.NewRoute("", http.MethodGet).Handle(listPublicModels)).
 		AddRoute(router.NewRoute("", http.MethodPost).Handle(createPublicModel).Use(middleware.RequireJSON())).
 		AddRoute(router.NewRoute("/resolve", http.MethodPost).Handle(resolvePublicModels).Use(middleware.RequireJSON())).
+		AddRoute(router.NewRoute("/pending", http.MethodGet).Handle(pendingPublicModels)).
+		AddRoute(router.NewRoute("/seed", http.MethodPost).Handle(seedPublicModels)).
 		AddRoute(router.NewRoute("/:id", http.MethodPut).Handle(updatePublicModel).Use(middleware.RequireJSON())).
 		AddRoute(router.NewRoute("/:id", http.MethodDelete).Handle(deletePublicModel))
 }
@@ -94,4 +96,23 @@ func resolvePublicModels(c *gin.Context) {
 		return
 	}
 	resp.Success(c, rows)
+}
+
+
+func pendingPublicModels(c *gin.Context) {
+	rows, err := op.PublicModelListPending(c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, rows)
+}
+
+func seedPublicModels(c *gin.Context) {
+	n, err := op.PublicModelSeedCommon(c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	resp.Success(c, gin.H{"created": n})
 }

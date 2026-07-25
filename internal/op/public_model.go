@@ -315,3 +315,96 @@ func InferModelFamily(name string) string {
 		return "other"
 	}
 }
+
+
+// PublicModelListPending scans enabled channels and returns upstream models that do not
+// resolve via dictionary exact alias / public name (normalize-only suggestions still pending).
+func PublicModelListPending(ctx context.Context) ([]model.PublicModelPendingItem, error) {
+	channels, err := ChannelList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	idx, err := loadPublicAliasIndex(ctx)
+	if err != nil {
+		return nil, err
+	}
+	useNorm := AutoGroupNormalizeEnabled()
+	seen := map[string]struct{}{}
+	out := make([]model.PublicModelPendingItem, 0)
+	for _, ch := range channels {
+		if !ch.Enabled {
+			continue
+		}
+		names := splitChannelModelNames(ch.Model, ch.CustomModel)
+		for _, up := range names {
+			up = strings.TrimSpace(up)
+			if up == "" {
+				continue
+			}
+			key := strings.ToLower(up)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			pub, via := ResolvePublicModelName(up, idx, useNorm)
+			// Resolved only if dictionary-backed (exact_alias / normalize hit on dict).
+			if via == "exact_alias" || via == "normalize" {
+				continue
+			}
+			seen[key] = struct{}{}
+			item := model.PublicModelPendingItem{
+				Upstream:    up,
+				ChannelID:   ch.ID,
+				ChannelName: ch.Name,
+			}
+			if via == "normalize_local" && pub != "" {
+				item.SuggestedPublic = pub
+				item.Via = via
+			}
+			out = append(out, item)
+		}
+	}
+	return out, nil
+}
+
+// PublicModelSeedCommon inserts a small built-in dictionary if names are missing.
+func PublicModelSeedCommon(ctx context.Context) (created int, err error) {
+	type seed struct {
+		name    string
+		aliases []string
+	}
+	seeds := []seed{
+		{name: "gpt-4o", aliases: []string{"openai/gpt-4o", "gpt-4o-2024-08-06", "gpt-4o-2024-11-20", "chatgpt-4o-latest"}},
+		{name: "gpt-4o-mini", aliases: []string{"openai/gpt-4o-mini", "gpt-4o-mini-2024-07-18"}},
+		{name: "gpt-4.1", aliases: []string{"openai/gpt-4.1", "gpt-4-1"}},
+		{name: "gpt-4.1-mini", aliases: []string{"openai/gpt-4.1-mini", "gpt-4-1-mini"}},
+		{name: "o1", aliases: []string{"openai/o1", "o1-2024-12-17"}},
+		{name: "o3-mini", aliases: []string{"openai/o3-mini"}},
+		{name: "claude-3.5-sonnet", aliases: []string{"claude-3-5-sonnet", "claude-3-5-sonnet-20241022", "anthropic/claude-3.5-sonnet", "anthropic/claude-3-5-sonnet-20241022"}},
+		{name: "claude-3.5-haiku", aliases: []string{"claude-3-5-haiku", "claude-3-5-haiku-20241022", "anthropic/claude-3.5-haiku"}},
+		{name: "claude-sonnet-4", aliases: []string{"claude-sonnet-4-20250514", "anthropic/claude-sonnet-4"}},
+		{name: "claude-opus-4", aliases: []string{"claude-opus-4-20250514", "anthropic/claude-opus-4"}},
+		{name: "deepseek-chat", aliases: []string{"deepseek/deepseek-chat", "deepseek-v3"}},
+		{name: "deepseek-reasoner", aliases: []string{"deepseek/deepseek-reasoner", "deepseek-r1"}},
+		{name: "gemini-2.0-flash", aliases: []string{"google/gemini-2.0-flash", "gemini-2.0-flash-001"}},
+		{name: "gemini-2.5-pro", aliases: []string{"google/gemini-2.5-pro", "gemini-2.5-pro-preview"}},
+		{name: "qwen-max", aliases: []string{"qwen/qwen-max", "qwen-max-latest"}},
+		{name: "qwen-plus", aliases: []string{"qwen/qwen-plus"}},
+	}
+	for _, s := range seeds {
+		if _, err := PublicModelGetByName(s.name, ctx); err == nil {
+			continue
+		}
+		if _, err := PublicModelCreate(&model.PublicModelCreateRequest{
+			Name:    s.name,
+			Aliases: s.aliases,
+		}, ctx); err != nil {
+			// ignore unique races
+			if !strings.Contains(strings.ToLower(err.Error()), "unique") {
+				return created, err
+			}
+			continue
+		}
+		created++
+	}
+	return created, nil
+}
