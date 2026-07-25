@@ -26,7 +26,6 @@ import {
     getUnknownRouteReason,
     makeModelKey,
     modelNeedsAttention,
-    SHORT_ROUTE_LABEL,
 } from './model-helpers';
 import {
     measureRowHeight,
@@ -345,4 +344,3 @@ export const SiteChannelTableView = forwardRef<
         </div>
     );
 });
-

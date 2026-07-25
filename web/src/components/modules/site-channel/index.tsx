@@ -8,8 +8,7 @@ import {
     KeyRound,
     RefreshCw,
 } from 'lucide-react';
-import { SiteChannelDialog } from './SiteChannelDialog';
-import { SiteCard, SiteCardJumpWatcher } from './SiteCard';
+import { SiteCard } from './SiteCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';

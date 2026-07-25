@@ -58,11 +58,24 @@ func ChannelAutoGroupWithMode(channel *model.Channel, autoGroup model.AutoGroupT
 
 	channelModelNames := splitChannelModelNames(channel.Model, channel.CustomModel)
 
+	// Alias dictionary for exact matching (public name / aliases).
+	var aliasIdx *publicAliasIndex
+	if autoGroup == model.AutoGroupTypeExact {
+		if idx, err := loadPublicAliasIndex(ctx); err != nil {
+			log.Warnf("load public model aliases failed (channel=%d): %v", channel.ID, err)
+		} else {
+			aliasIdx = idx
+		}
+	}
+
 	for _, group := range groups {
 		desired, ok := matchModelsForAutoGroup(autoGroup, group, channelModelNames, channel.ID)
 		if !ok {
-			// Rule unusable (e.g. bad regex) — leave existing items alone.
 			continue
+		}
+		if autoGroup == model.AutoGroupTypeExact && aliasIdx != nil {
+			// Also attach models whose resolved public name equals this group name.
+			desired = mergeUniqueStrings(desired, modelsResolvedToPublic(channelModelNames, group.Name, aliasIdx))
 		}
 		if err := reconcileGroupItemsForChannel(group, channel.ID, desired, ctx); err != nil {
 			log.Warnf("auto group reconcile failed (channel=%d group=%d): %v", channel.ID, group.ID, err)
@@ -74,6 +87,52 @@ func ChannelAutoGroupWithMode(channel *model.Channel, autoGroup model.AutoGroupT
 			log.Warnf("auto group create-missing failed (channel=%d): %v", channel.ID, err)
 		}
 	}
+}
+
+func modelsResolvedToPublic(channelModelNames []string, publicName string, idx *publicAliasIndex) []string {
+	if idx == nil || strings.TrimSpace(publicName) == "" {
+		return nil
+	}
+	useNorm := AutoGroupNormalizeEnabled()
+	out := make([]string, 0)
+	for _, up := range channelModelNames {
+		pub, via := ResolvePublicModelName(up, idx, useNorm)
+		if via == "none" || via == "normalize_local" {
+			// normalize_local alone is not dictionary resolution for matching existing groups
+			// (PublicModelNamesMatch already covers normalize to group name).
+			if via == "normalize_local" && PublicModelNamesMatch(up, publicName, true) {
+				out = append(out, up)
+			}
+			continue
+		}
+		if strings.EqualFold(pub, publicName) {
+			out = append(out, up)
+		}
+	}
+	return out
+}
+
+func mergeUniqueStrings(base, extra []string) []string {
+	if len(extra) == 0 {
+		return base
+	}
+	seen := make(map[string]struct{}, len(base)+len(extra))
+	out := make([]string, 0, len(base)+len(extra))
+	for _, s := range base {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	for _, s := range extra {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		out = append(out, s)
+	}
+	return out
 }
 
 // AutoGroupCreateMissingEnabled reports whether exact-match auto-group may
@@ -105,6 +164,7 @@ func ensureMissingExactGroups(channelID int, channelModelNames []string, existin
 		return nil
 	}
 	normalize := AutoGroupNormalizeEnabled()
+	aliasIdx, _ := loadPublicAliasIndex(ctx)
 
 	existingByLower := make(map[string]struct{}, len(existingGroups)*2)
 	for _, group := range existingGroups {
@@ -144,8 +204,23 @@ func ensureMissingExactGroups(channelID int, channelModelNames []string, existin
 			continue
 		}
 
+		// Prefer alias dictionary public name when resolving create-missing.
 		groupName := trimmed
-		if normalize {
+		if aliasIdx != nil {
+			if pub, via := ResolvePublicModelName(trimmed, aliasIdx, normalize); via != "none" && pub != "" {
+				if via != "normalize_local" || len(aliasIdx.byExact) == 0 {
+					groupName = pub
+				} else if normalize {
+					if n := NormalizePublicModelName(trimmed); n != "" {
+						groupName = n
+					}
+				}
+			} else if normalize {
+				if n := NormalizePublicModelName(trimmed); n != "" {
+					groupName = n
+				}
+			}
+		} else if normalize {
 			if n := NormalizePublicModelName(trimmed); n != "" {
 				groupName = n
 			}

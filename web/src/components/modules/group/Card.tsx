@@ -18,6 +18,7 @@ import { modelChannelKey, MODE_LABELS } from './utils';
 import { GroupMode, type GroupUpdateRequest } from '@/api/endpoints/group';
 import { PresetPopover } from './PresetPopover';
 import { useRuntimeOverview } from '@/api/endpoints/runtime';
+import { inferModelFamily } from '@/lib/model-family';
 import {
     MorphingDialog,
     MorphingDialogClose,
@@ -316,7 +317,7 @@ export function GroupCard({ group }: { group: Group }) {
                     </Tooltip>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground">
-                            {t(`mode.${MODE_LABELS[group.mode]}`)} · {(group.items || []).length}
+                            {inferModelFamily(group.name)} · {t(`mode.${MODE_LABELS[group.mode]}`)} · {(group.items || []).length}
                         </span>
                         {openCircuits > 0 ? (
                             <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">

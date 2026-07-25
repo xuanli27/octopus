@@ -731,11 +731,11 @@
       },
       "createMissing": {
         "title": "Create missing groups on exact match",
-        "description": "When enabled, exact-match auto-group creates a RoundRobin group for each channel model that has no same-named public group, and attaches it. Fuzzy/regex modes never create groups."
+        "description": "Creates RoundRobin public groups for unmatched exact models. Prefer the public-name dictionary so dirty upstream ids do not become fragment groups."
       },
       "normalize": {
         "title": "Normalize model names on exact match",
-        "description": "When enabled, exact match ignores provider prefixes and date suffixes (e.g. openai/gpt-4o-2024-08-06 matches public group gpt-4o). Create-missing also uses the normalized public name."
+        "description": "Strip provider prefixes and date suffixes, normalize 3-5→3.5, then map via the public-name dictionary."
       },
       "sections": {
         "channels": "Channels"

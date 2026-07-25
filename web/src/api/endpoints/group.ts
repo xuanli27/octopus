@@ -359,6 +359,7 @@ function invalidateAutoGroupRelated(queryClient: ReturnType<typeof useQueryClien
     queryClient.invalidateQueries({ queryKey: ['settings', 'list'] });
     queryClient.invalidateQueries({ queryKey: ['runtime'] });
     queryClient.invalidateQueries({ queryKey: ['group-health'] });
+    queryClient.invalidateQueries({ queryKey: ['public-models', 'pending'] });
 }
 
 export function useUpdateGroupAutoGroupConfig() {

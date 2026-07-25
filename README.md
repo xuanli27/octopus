@@ -54,7 +54,7 @@ docker compose up -d
 ```
 
 > Alpine: `qianduzzz/octopus:latest-alpine` or `ghcr.io/xuanli27/octopus:latest-alpine`  
-> Pin a version by replacing `latest` with a tag such as `v0.9.1` / `v0.9.1-alpine`
+> Pin a version by replacing `latest` with a tag such as `v0.9.2` / `v0.9.2-alpine`
 
 
 ### 📦 Download from Release
@@ -68,9 +68,9 @@ Download the binary for your platform from [Releases](https://github.com/xuanli2
 ### 🛠️ Build from Source
 
 **Requirements:**
-- Go 1.24.4
-- Node.js 18+
-- pnpm
+- Go 1.25.0
+- Node.js 22
+- pnpm 11.1.2
 
 ```bash
 # Clone the repository
@@ -422,4 +422,3 @@ Based on [Hureru/octopus](https://github.com/Hureru/octopus) / [bestruirui/octop
 ## 🔗 Friend Links
 
 - 🐧 [LinuxDO](https://linux.do) - A community for tech enthusiasts
-

@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Cable, ChevronRight, Globe2, KeyRound, Waypoints } from 'lucide-react';
-import { useSiteList } from '@/api/endpoints/site';
+import { Cable, ChevronRight, Globe2, KeyRound, RefreshCw, Waypoints } from 'lucide-react';
+import { useSiteList, useSiteSyncJobs, useSiteSyncRuntimeStatus } from '@/api/endpoints/site';
 import { useSiteChannelList } from '@/api/endpoints/site-channel';
 import { useGroupList } from '@/api/endpoints/group';
 import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { useNavStore } from '@/components/modules/navbar';
 import { useChannelTabStore } from '@/components/modules/channel/tab-store';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const STEPS = [
@@ -17,11 +18,41 @@ const STEPS = [
     { id: 4, title: '创建访问密钥', hint: '设置 · 给客户端用', icon: Cable },
 ] as const;
 
+function formatRuntimeTime(value?: string | null) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function syncJobStatusLabel(status?: string) {
+    switch (status) {
+        case 'success':
+            return '成功';
+        case 'partial':
+            return '部分成功';
+        case 'failed':
+            return '失败';
+        case 'canceled':
+            return '已取消';
+        case 'skipped':
+            return '已跳过';
+        default:
+            return status || '未执行';
+    }
+}
+
 export function SiteConnectStrip() {
     const { data: sites } = useSiteList();
     const { data: siteCards } = useSiteChannelList({ includeHistory: false });
     const { data: groups } = useGroupList();
     const { data: apiKeys } = useAPIKeyList();
+    const { data: syncRuntime } = useSiteSyncRuntimeStatus();
+    const { data: syncJobs } = useSiteSyncJobs(5);
+    // A blocked/skipped request can be newer than the worker it tried to
+    // start. Prefer an active durable job so the strip reflects real progress
+    // across multiple application instances.
+    const latestSyncJob = syncJobs?.find((job) => job.status === 'queued' || job.status === 'running') ?? syncJobs?.[0];
     const setActiveItem = useNavStore((s) => s.setActiveItem);
     const setChannelTab = useChannelTabStore((s) => s.setActiveTab);
 
@@ -60,7 +91,43 @@ export function SiteConnectStrip() {
                         {progress.missingKeys > 0 ? ` · 缺源密钥 ${progress.missingKeys} 组` : ''}
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    {syncRuntime?.running ? (
+                        <Badge
+                            variant="outline"
+                            className="gap-1.5 border-primary/30 bg-primary/5 text-primary"
+                        >
+                            <RefreshCw className="size-3 animate-spin" />
+                            同步中 {syncRuntime.attempted}/{syncRuntime.total}
+                        </Badge>
+                    ) : latestSyncJob?.status === 'queued' ? (
+                        <Badge variant="outline" className="gap-1.5 border-amber-500/30 bg-amber-500/5 text-amber-700">
+                            <RefreshCw className="size-3" />
+                            同步任务排队中
+                        </Badge>
+                    ) : latestSyncJob?.status === 'running' ? (
+                        <Badge
+                            variant="outline"
+                            className="gap-1.5 border-primary/30 bg-primary/5 text-primary"
+                        >
+                            <RefreshCw className="size-3 animate-spin" />
+                            同步中 {latestSyncJob.attempted}/{latestSyncJob.total}
+                        </Badge>
+                    ) : latestSyncJob?.status === 'skipped' && latestSyncJob.blocked_by_job_id ? (
+                        <span className="text-[11px] text-muted-foreground">
+                            已有同步任务 #{latestSyncJob.blocked_by_job_id} 运行中
+                        </span>
+                    ) : latestSyncJob?.finished_at ? (
+                        <span className="text-[11px] text-muted-foreground">
+                            最近同步 {formatRuntimeTime(latestSyncJob.finished_at)} · {syncJobStatusLabel(latestSyncJob.status)}
+                            {latestSyncJob.failed > 0 ? ` · 失败 ${latestSyncJob.failed}` : ''}
+                        </span>
+                    ) : syncRuntime?.finished_at ? (
+                        <span className="text-[11px] text-muted-foreground">
+                            最近同步 {formatRuntimeTime(syncRuntime.finished_at)} · 成功 {syncRuntime.success}
+                            {syncRuntime.failed > 0 ? ` · 失败 ${syncRuntime.failed}` : ''}
+                        </span>
+                    ) : null}
                     <button
                         type="button"
                         onClick={() => {

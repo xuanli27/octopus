@@ -483,6 +483,9 @@ export function GroupAutoGroupDialogContent() {
                                 />
                             </div>
                         </div>
+                        <p className="mb-3 text-[11px] leading-5 text-muted-foreground">
+                            提示：上游脏名请到路由页「规范/别名」维护字典，再保存并执行自动分组；仅靠模糊匹配容易误合并。
+                        </p>
 
                         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/50 bg-muted/30">
                             <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/30 bg-muted/50 px-3 py-2">
