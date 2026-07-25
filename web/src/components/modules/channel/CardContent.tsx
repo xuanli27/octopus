@@ -153,9 +153,13 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
 
         updateChannel.mutate(req, {
             onSuccess: () => {
+                toast.success('渠道已更新 · 熔断/会话粘性/近1h失败率已刷新');
                 setIsEditing(false);
                 setIsOpen(false);
-            }
+            },
+            onError: (error) => {
+                toast.error(error.message || '渠道更新失败');
+            },
         });
     };
 

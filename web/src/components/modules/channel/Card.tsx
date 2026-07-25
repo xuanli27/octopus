@@ -81,13 +81,13 @@ export function Card({ channel, stats, layout = 'grid' }: { channel: Channel; st
                                     </span>
                                 ) : null}
                                 {circuitCount > 0 ? (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                    <span title="该渠道当前处于熔断；编辑/启用后会自动清除" className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
                                         <ShieldAlert className="size-3" />
                                         熔断 {circuitCount}
                                     </span>
                                 ) : null}
                                 {health && health.fail_rate >= 20 ? (
-                                    <span className="inline-flex rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                                    <span title="近1小时失败率；更新渠道配置后该统计会清空重建" className="inline-flex rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
                                         近1h {health.fail_rate.toFixed(0)}%
                                     </span>
                                 ) : health && health.request_failed > 0 ? (

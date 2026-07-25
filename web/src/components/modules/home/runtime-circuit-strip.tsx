@@ -60,7 +60,7 @@ export function RuntimeCircuitStrip() {
         return (
             <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-card/60 px-3 py-2 text-xs text-muted-foreground">
                 <Activity className="size-3.5" />
-                运行态：当前无熔断，也无高失败率渠道
+                运行态：当前无熔断/高失败率渠道（编辑渠道后会自动刷新）
             </div>
         );
     }

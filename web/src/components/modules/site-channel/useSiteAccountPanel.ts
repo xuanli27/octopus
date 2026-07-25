@@ -399,7 +399,7 @@ export function useSiteAccountPanel({
             },
             {
                 onSuccess: () => {
-                    toast.success(`上游分组「${missingKeyGroup.group_name || missingKeyGroup.group_key}」已创建源密钥并完成同步`);
+                    toast.success(`上游分组「${missingKeyGroup.group_name || missingKeyGroup.group_key}」已创建源密钥并完成同步 · 投影/运行态将刷新`);
                     setMissingKeyGroup(null);
                 },
                 onError: (error) => {
@@ -416,7 +416,7 @@ export function useSiteAccountPanel({
             buildPasteSourceKeyPayload(missingKeyGroup.group_key, token, name),
             {
                 onSuccess: () => {
-                    toast.success(`上游分组「${missingKeyGroup.group_name || missingKeyGroup.group_key}」已保存源密钥并投影`);
+                    toast.success(`上游分组「${missingKeyGroup.group_name || missingKeyGroup.group_key}」已保存源密钥并投影 · 运行态将刷新`);
                     setMissingKeyGroup(null);
                 },
                 onError: (error) => {
@@ -636,7 +636,7 @@ export function useSiteAccountPanel({
         }
         sourceKeyMutation.mutate(payload, {
             onSuccess: () => {
-                toast.success(`上游分组「${editingProjectedGroup.group_name || editingProjectedGroup.group_key}」的源密钥已更新`);
+                toast.success(`上游分组「${editingProjectedGroup.group_name || editingProjectedGroup.group_key}」的源密钥已更新，并已重新投影 · 运行态将刷新`);
                 setEditingProjectedGroup(null);
                 setSourceKeyForm([]);
                 setVisibleSourceKeyRows({});
