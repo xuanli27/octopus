@@ -681,8 +681,6 @@ export function useSiteAccountPanel({
         };
         setTableSort(panelKey, nextSort);
     };
-
-    const selectedVisibleCount = selectedModels.length;
     const activeGroupValue = activeFilter.kind === 'all' ? SITE_GROUP_FILTER_ALL_VALUE : activeFilter.groupKey;
     const activeGroup = activeFilter.kind === 'group'
         ? account.groups.find((group) => group.group_key === activeFilter.groupKey) ?? null

@@ -60,3 +60,18 @@ cd web && pnpm exec tsc --noEmit
 - [ ] 渠道详情「运行态」面板可手动刷新，粘性数量可见
 - [ ] 历史累计成功/失败统计可不变（预期）
 
+## 推送前本地门禁（必须）
+
+```bash
+bash scripts/pre-push-check.sh
+```
+
+至少包含：
+1. `go test ./...`
+2. `cd web && pnpm exec tsc --noEmit`
+3. `cd web && pnpm run lint`（0 errors）
+4. `bash scripts/build.sh release`（与远端 release job 一致）
+5. 可选：podman/docker 构建 `Dockerfile.debian` 冒烟
+
+未通过门禁不要 push master。
+

@@ -29,7 +29,7 @@ export function SiteAccountPanel(props: {
     onJumpHandled: (requestId: number) => void;
     onNavigateToChannel: (channelId: number) => void;
 }) {
-    const p = useSiteAccountPanel(props);
+    const { tableHandleRef, ...p } = useSiteAccountPanel(props);
 
     return (
         <div className="flex min-h-0 flex-1 flex-col gap-2.5">
@@ -173,7 +173,7 @@ export function SiteAccountPanel(props: {
             ) : (
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border/70 bg-card/70">
                     <SiteChannelTableView
-                        ref={p.tableHandleRef}
+                        ref={tableHandleRef}
                         models={p.visibleModels}
                         resetKey={p.modelsScopeKey}
                         allVisibleSelected={p.allVisibleSelected}
