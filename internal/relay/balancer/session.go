@@ -75,13 +75,24 @@ type StickySnapshot struct {
 	AgeMS        int64     `json:"age_ms"`
 }
 
+// stickySnapshotMaxAge drops orphan sessions that no group still uses.
+// GetSticky uses per-group TTL; listing has no group context, so we use a hard cap.
+const stickySnapshotMaxAge = 24 * time.Hour
+
 // ListStickySnapshots returns current sticky sessions, optionally filtered by channelID (0=all).
+// Entries older than stickySnapshotMaxAge are lazily deleted.
 func ListStickySnapshots(channelID int) []StickySnapshot {
 	out := make([]StickySnapshot, 0)
 	now := time.Now()
 	globalSession.Range(func(key, value any) bool {
 		entry, ok := value.(*SessionEntry)
 		if !ok || entry == nil {
+			globalSession.Delete(key)
+			return true
+		}
+		age := now.Sub(entry.Timestamp)
+		if age > stickySnapshotMaxAge || age < 0 {
+			globalSession.Delete(key)
 			return true
 		}
 		if channelID > 0 && entry.ChannelID != channelID {
@@ -100,7 +111,7 @@ func ListStickySnapshots(channelID int) []StickySnapshot {
 			RequestModel: requestModel,
 			ChannelID:    entry.ChannelID,
 			ChannelKeyID: entry.ChannelKeyID,
-			AgeMS:        now.Sub(entry.Timestamp).Milliseconds(),
+			AgeMS:        age.Milliseconds(),
 		})
 		return true
 	})
